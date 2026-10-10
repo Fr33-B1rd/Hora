@@ -1,0 +1,48 @@
+[
+  {
+    "name": "plan-outing",
+    "tools": [
+      "update_trip",
+      "set_budget",
+      "select_option",
+      "set_activity_window",
+      "discover_candidates",
+      "search_places",
+      "select_candidates",
+      "place_details",
+      "route",
+      "plan_itinerary",
+      "select_plan",
+      "event_details"
+    ]
+  },
+  {
+    "name": "verify-activity",
+    "tools": [
+      "search_places",
+      "place_details",
+      "inspect_activity",
+      "select_plan",
+      "event_details",
+      "read_place_website",
+      "assess_place_offer"
+    ]
+  },
+  {
+    "name": "local-discovery",
+    "tools": [
+      "read_news",
+      "nearby_events",
+      "event_details",
+      "present_events"
+    ]
+  },
+  {
+    "name": "calendar-review",
+    "tools": [
+      "calendar_availability",
+      "calendar_changes",
+      "select_plan"
+    ]
+  }
+]

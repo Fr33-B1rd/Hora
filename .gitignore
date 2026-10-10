@@ -1,0 +1,7 @@
+.env
+*.log
+artifacts/
+data/
+.venv-voice/
+models/
+__pycache__/
