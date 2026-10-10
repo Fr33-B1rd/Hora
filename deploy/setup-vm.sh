@@ -83,6 +83,7 @@ echo "keys present; .env is readable by $me only"
 
 say "4/7 Hermes configuration"
 hermes="$project/scripts/hermes.sh"
+chmod +x "$hermes"  # an archive made on Windows does not carry the executable flag
 mkdir -p "$hermes_home"; touch "$hermes_home/.env"; chmod 600 "$hermes_home/.env"
 # The local API the web server talks to: loopback only, same key on both sides.
 python3 - "$hermes_home/.env" "$api_key" <<'PY'
