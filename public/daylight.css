@@ -110,3 +110,32 @@ button { cursor: pointer; }
   .ideas { grid-template-columns: 1fr; }
   .know { grid-template-columns: 1fr; }
 }
+
+/* A checked plan under a reply */
+.plan { align-self: stretch; max-width: 980px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+.plan > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.plan > header small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+.options { display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: var(--paper); }
+.options button { border: 0; background: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; color: var(--muted); }
+.options button[aria-selected="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+.plan-body { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(280px, 1.1fr); gap: 20px; align-items: start; }
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 14px; }
+.timeline li { display: grid; grid-template-columns: 96px 1fr; gap: 10px; padding: 7px 8px; border-radius: 8px; line-height: 1.4; }
+.timeline time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.timeline .stop { background: var(--paper); cursor: pointer; }
+.timeline .stop:hover, .timeline .stop.map-selected { background: var(--green-soft); }
+.timeline .stop small { display: block; color: var(--muted); font-size: 12px; }
+.timeline .leg { color: var(--muted); font-size: 13px; padding-top: 2px; padding-bottom: 2px; }
+.timeline .move { font-weight: 600; }
+.hint { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 10px 0 0; }
+.calendar { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.calendar p, .calendar ul, .calendar b, .calendar .check { flex-basis: 100%; margin: 0; }
+.calendar.done { color: var(--green); }
+.calendar .check { display: flex; gap: 8px; align-items: flex-start; line-height: 1.45; }
+.changes { padding-left: 18px; line-height: 1.6; }
+.send.small { height: 38px; padding: 0 14px; font-size: 14px; }
+.plan-map summary { font-size: 13px; color: var(--muted); cursor: pointer; margin-bottom: 6px; }
+#journey-map-host { border-radius: 12px; overflow: hidden; background: var(--paper); }
+.journey-map-canvas { width: 100%; height: 340px; }
+.journey-map-pin { min-width: 26px; height: 26px; padding: 0 7px; border-radius: 13px; color: #fff; font: 600 12px/26px inherit; text-align: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
+@media (max-width: 900px) { .plan-body { grid-template-columns: 1fr; } }

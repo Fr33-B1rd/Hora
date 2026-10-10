@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {respond,planDay,tools} from '../mcp/planner-server.mjs';
+import {respond,planDay,persistPlan,tools} from '../mcp/planner-server.mjs';
+import {mkdtemp,readFile,readdir,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
 const at=(id,name,periods=null)=>({id,name,location:{latitude:59.33,longitude:18.06},periods});
 const world=()=>{const origin=at('slussen','Slussen'),museum=at('museum','Stadsmuseet'),sushi=at('sushi','Råkultur'),closed=at('closed','Vasamuseet',[]);
@@ -35,6 +38,20 @@ test('with no leave time given, the plan does not set off early just to wait at 
   assert.match(open.plans[0].stops[0].start,/^12:0\d$/);assert.ok(open.plans[0].legs[0].depart>='11:30',open.plans[0].legs[0].depart);assert.deepEqual(open.plans[0].waits,[]);
   const fixed=await planDay({date:'2026-10-10',from:'Slussen',leaveAt:'10:00',activities:[{name:'Sushi'}]},lunch);
   assert.equal(fixed.plans[0].legs[0].depart,'10:00');
+});
+
+test('a checked plan is saved for the web app with everything a map and a calendar preview need',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'daylight-plans-'));
+  try{
+    await planDay(request,world,record=>persistPlan(record,dir));
+    const saved=JSON.parse(await readFile(join(dir,'latest.json'),'utf8'));
+    assert.match(saved.id,/^plan-/);assert.deepEqual(saved.request,request);assert.ok(Date.parse(saved.createdAt));
+    assert.ok(saved.entry.result.plans.length);assert.equal(saved.entry.result.origin.name,'Slussen');assert.ok(saved.entry.result.places.museum);assert.equal(saved.entry.input.date,'2026-10-10');assert.ok(saved.entry.day);
+    assert.deepEqual((await readdir(dir)).sort(),['latest.json',saved.id+'.json'].sort());
+    for(let i=0;i<12;i++)await persistPlan({id:'plan-'+String(i).padStart(3,'0'),entry:{}},dir);
+    assert.equal((await readdir(dir)).filter(f=>f.startsWith('plan-')).length,10);
+    const failing=await planDay(request,world,async()=>{throw Error('disk full');});assert.equal(failing.status,'planned');
+  }finally{await rm(dir,{recursive:true});}
 });
 
 test('times, order and limits in the call are requirements, never relaxed as assumptions',async()=>{

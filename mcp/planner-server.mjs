@@ -4,6 +4,8 @@
 //   node --env-file=.env mcp/planner-server.mjs
 // Nothing here can write a calendar, book or pay.
 import {createInterface} from 'node:readline';
+import {mkdir,writeFile,rename,readdir,unlink} from 'node:fs/promises';
+import {randomBytes} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {createAgentEnvironment} from '../lib/agent-tools.mjs';
 import {createMaps} from '../lib/maps.mjs';
@@ -39,9 +41,21 @@ const services=()=>{
   return {maps,calendarDay:calendar,getChecks:()=>({revision:0,items:{}}),saveJourney:()=>'mcp',evidence:[],eventDetails};
 };
 
-export async function planDay(args,make=services){
+// A checked plan is also saved where the web app can pick it up, so the user can
+// see it on a map and confirm calendar entries there. Only the last few are kept.
+const planDirectory=()=>(process.env.DAYLIGHT_DATA_DIR||fileURLToPath(new URL('../data/',import.meta.url))).replace(/[\/]$/,'')+'/plans';
+export async function persistPlan(record,directory=planDirectory()){
+  await mkdir(directory,{recursive:true});
+  const body=JSON.stringify(record);
+  for(const name of [record.id+'.json','latest.json']){await writeFile(`${directory}/${name}.tmp`,body);await rename(`${directory}/${name}.tmp`,`${directory}/${name}`);}
+  const old=(await readdir(directory)).filter(f=>/^plan-.*.json$/.test(f)).sort().slice(0,-10);
+  await Promise.all(old.map(f=>unlink(`${directory}/${f}`).catch(()=>{})));
+}
+export async function planDay(args,make=services,save=null){
   validDate(args.date);
-  const text=JSON.stringify(args),env=createAgentEnvironment({text},make());
+  const id='plan-'+Date.now().toString(36)+'-'+randomBytes(4).toString('hex'),world=make();let entry=null;
+  world.saveJourney=value=>{entry=value;return id;};
+  const text=JSON.stringify(args),env=createAgentEnvironment({text},world);
   const activities=args.activities.map((a,i)=>({id:'a'+(i+1),label:a.name,query:a.search||a.place||a.name,requiredNames:a.place?[a.place]:[],duration:a.minutes||60,allowance:null,eventRef:null,windowStart:a.earliest||null,windowEnd:a.latest||null,windowQuote:null,availability:'venue',...(a.meetingPoint?{hours:'not_needed'}:{})}));
   await env.handlers.update_trip({by:'user',patch:{date:args.date,origin:args.from,originQuote:args.from,activities,
     ...(args.keepOrder?{precedence:activities.slice(1).map((a,i)=>({before:activities[i].id,after:a.id}))}:{}),
@@ -53,6 +67,7 @@ export async function planDay(args,make=services){
   try{r=await env.handlers.plan_itinerary({});}
   catch(error){return {status:'not_planned',reason:error.message,missing:error.details?{fields:error.details.missingFields,places:error.details.missingCandidates?.map(a=>a.label)}:undefined,calendarWritten:false};}
   const journey=env.output().journey;
+  if(save&&entry)try{await save({id,createdAt:new Date().toISOString(),request:args,entry});}catch{/* the plan is still returned to the model */}
   return {status:r.planChoices.length?(r.status==='route_draft'?'draft_needs_verification':'planned'):'nothing_fits',date:args.date,from:r.actualOrigin?.name,
     plans:r.planChoices.map(p=>({option:p.displayNumber,name:p.name,stops:p.stops,legs:p.legs.map(l=>({mode:l.mode,depart:l.depart,arrive:l.arrive,minutes:l.minutes})),backAt:p.returnAt,estimatedCostSEK:p.reserveSEK,walkingMinutes:p.walking,waits:(p.gaps||[]).filter(g=>g.minutes>=30).map(g=>g.minutes+' min')})),
     ...(r.planChoices.length?{}:{why:r.outcome,blockers:(r.diagnostics||[]).slice(0,4).map(d=>d.message),ways_forward:(r.repairOptions||[]).map(o=>o.explanation)}),
@@ -63,7 +78,7 @@ export async function findEvents({date,days=1,near='Stockholm Centralstation'},m
   validDate(date);const r=await nearbyEvents(near,make().maps,{days,from:date});
   return {date,days,source:'Visit Stockholm (curated)',events:r.events.map(e=>({title:e.title,venue:e.venue,sessions:e.occurrences?.length?e.occurrences:'no session times published',description:(e.description||'').slice(0,300),link:e.url}))};
 }
-const handlers={plan_day:planDay,find_events:findEvents,local_news:async()=>{const r=await localNews();return {source:'SVT Stockholm',items:r.cards.map(c=>({title:c.translatedTitle||c.title,original:c.title,published:c.publishedAt,link:c.url}))};}};
+const handlers={plan_day:args=>planDay(args,services,persistPlan),find_events:findEvents,local_news:async()=>{const r=await localNews();return {source:'SVT Stockholm',items:r.cards.map(c=>({title:c.translatedTitle||c.title,original:c.title,published:c.publishedAt,link:c.url}))};}};
 
 // Minimal JSON-RPC 2.0 over newline-delimited stdio, as MCP's stdio transport specifies.
 export async function respond(message,run=handlers){

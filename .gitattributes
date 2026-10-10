@@ -1,0 +1,4 @@
+# Scripts and skills run under Linux (WSL or a server): keep their line endings as LF.
+*.sh text eol=lf
+*.py text eol=lf
+hermes/** text eol=lf

@@ -1,6 +1,8 @@
 // Daylight web app: a chat with the same assistant as the user's chat apps, and
 // a page showing what that assistant remembers and does on a schedule.
 
+import { mountJourneyMap } from './journey-map.mjs';
+
 const app = document.getElementById('app');
 const store = {
   get(key, fallback) { try { return JSON.parse(sessionStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
@@ -29,7 +31,7 @@ function h(tag, attrs = {}, ...children) {
     else if (key === 'class') el.className = value;
     else el.setAttribute(key, value === true ? '' : value);
   }
-  for (const child of children.flat()) if (child != null && child !== false) el.append(child);
+  for (const child of children.flat(Infinity)) if (child != null && child !== false) el.append(child);
   return el;
 }
 const sun = () => {
@@ -125,7 +127,98 @@ function richText(text) {
 function turnElement(turn) {
   const el = h('div', { class: `turn ${turn.role}${turn.error ? ' error' : ''}` }, richText(turn.text));
   if (turn.steps?.length) el.append(h('small', { class: 'steps' }, turn.steps.join(' · ') + (turn.seconds ? ` · ${turn.seconds} s` : '')));
-  return el;
+  const journey = turn.planId && plans.get(turn.planId);
+  return journey?.plans.length ? [el, planCard(turn, journey)] : el;
+}
+
+// ---- a checked plan: options, timeline, map, and adding it to the calendar ----
+const PLAN_STEP = 'Checking places, opening hours and travel';
+const plans = new Map();     // plan id -> the checked result from the planner
+let mappedPlan = null;       // the one plan card that currently owns the map
+const clock = minutes => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+const dayLabel = date => new Date(date + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+
+async function attachLatestPlan(turn, since) {
+  try {
+    const journey = await api('/api/plans/latest');
+    if (Date.parse(journey.createdAt) < since - 5000) return;  // an older plan, not from this reply
+    plans.set(journey.id, journey);
+    turn.planId = journey.id; turn.choice = journey.plans[0]?.id ?? null;
+  } catch { /* no plan to show; the reply still stands on its own */ }
+}
+
+function timeline(journey, plan) {
+  const rows = [h('li', { class: 'move' }, h('time', {}, clock(plan.legs[0]?.depart ?? plan.stops[0].start)), h('span', {}, 'Leave ' + journey.origin.name))];
+  plan.stops.forEach((stop, index) => {
+    const leg = plan.legs[index], place = journey.places[stop.placeId];
+    if (leg) rows.push(h('li', { class: 'leg' }, h('time', {}), h('span', {}, `${leg.minutes} min ${leg.mode === 'walk' ? 'walk' : 'by public transport'}`)));
+    rows.push(h('li', { class: 'stop', 'data-map-stop': String(index), tabindex: '0' },
+      h('time', {}, `${clock(stop.start)}–${clock(stop.end)}`),
+      h('span', {}, h('b', {}, stop.label), place ? h('small', {}, place.url ? h('a', { href: place.url, target: '_blank', rel: 'noreferrer' }, place.name) : place.name, place.address ? ' · ' + place.address.split(',')[0] : '') : null)));
+  });
+  const home = plan.legs[plan.stops.length];
+  if (home) rows.push(h('li', { class: 'leg' }, h('time', {}), h('span', {}, `${home.minutes} min ${home.mode === 'walk' ? 'walk' : 'by public transport'}`)));
+  rows.push(h('li', { class: 'move' }, h('time', {}, clock(plan.homeAt)), h('span', {}, 'Back at ' + journey.origin.name)));
+  return h('ol', { class: 'timeline' }, rows);
+}
+
+function calendarBox(turn, journey, plan) {
+  const cal = turn.calendar ||= { step: 'idle' };
+  const set = patch => { Object.assign(cal, patch); render(); };
+  const run = async (work, failStep) => { set({ busy: true, error: '' }); try { await work(); } catch (error) { set({ busy: false, error: error.message, ...(failStep ? { step: failStep } : {}) }); } };
+  if (cal.step === 'done') return h('div', { class: 'calendar done', role: 'status' }, h('b', {}, 'Added to your calendar.'), ' ', cal.message || '');
+  if (plan.availabilityPending?.length || plan.continuityUnverified) return h('p', { class: 'calendar hint' }, 'This is a draft: a session or connection in it is not confirmed yet, so it cannot be added to the calendar.');
+  if (cal.step === 'idle') return h('div', { class: 'calendar' },
+    h('button', { class: 'quiet', type: 'button', disabled: cal.busy, onclick: () => run(async () => {
+      const status = await api('/api/status');
+      set({ busy: false, step: status.calendar?.connected ? 'ack' : 'connect' });
+    }) }, 'Add to calendar…'), cal.error ? h('p', { class: 'note', role: 'alert' }, cal.error) : null);
+  if (cal.step === 'connect') return h('div', { class: 'calendar' },
+    h('p', {}, 'Google Calendar is not connected on this server.'),
+    h('button', { class: 'quiet', type: 'button', onclick: () => run(async () => { location.href = (await api('/api/google/connect', {})).url; }) }, 'Connect Google Calendar'),
+    h('button', { class: 'link', type: 'button', onclick: () => set({ step: 'idle' }) }, 'Cancel'), cal.error ? h('p', { class: 'note', role: 'alert' }, cal.error) : null);
+  if (cal.step === 'ack') {
+    const box = h('input', { type: 'checkbox', id: 'ack-' + journey.id });
+    return h('div', { class: 'calendar' },
+      h('label', { class: 'check', for: 'ack-' + journey.id }, box, 'I understand these are tentative time blocks in my own calendar, not bookings or tickets.'),
+      h('button', { class: 'quiet', type: 'button', disabled: cal.busy, onclick: () => {
+        if (!box.checked) return set({ error: 'Tick the box to continue.' });
+        run(async () => set({ busy: false, step: 'preview', preview: await api('/api/journey/preview', { id: journey.id, choice: plan.id, acknowledge: true }) }));
+      } }, 'Preview calendar changes'),
+      h('button', { class: 'link', type: 'button', onclick: () => set({ step: 'idle', error: '' }) }, 'Cancel'), cal.error ? h('p', { class: 'note', role: 'alert' }, cal.error) : null);
+  }
+  return h('div', { class: 'calendar' },
+    h('b', {}, `Changes to your calendar on ${dayLabel(cal.preview.date)}`),
+    h('ul', { class: 'changes' }, cal.preview.changes.map(c => h('li', {}, `${c.operation || 'Create'}: ${c.label || c.kind}, ${clock(c.start)}–${clock(c.end)}${c.tentative ? ' (tentative)' : ''}`))),
+    h('p', { class: 'hint' }, cal.preview.notice || ''),
+    h('button', { class: 'send small', type: 'button', disabled: cal.busy, onclick: () => run(async () => {
+      const done = await api('/api/calendar/confirm', { id: cal.preview.id });
+      set({ busy: false, step: 'done', message: done.message });
+    }) }, 'Confirm and write to Google Calendar'),
+    h('button', { class: 'link', type: 'button', disabled: cal.busy, onclick: () => set({ step: 'idle', preview: null, error: '' }) }, 'Cancel'),
+    cal.error ? h('p', { class: 'note', role: 'alert' }, cal.error) : null);
+}
+
+function planCard(turn, journey) {
+  const plan = journey.plans.find(p => p.id === turn.choice) || journey.plans[0];
+  const latest = state.turns.findLast(t => t.planId) === turn;
+  const open = journey.open || {};
+  const limits = [open.start && 'leave time', open.deadline && 'return time', open.budget && 'budget'].filter(Boolean);
+  if (latest) mappedPlan = { journey, plan };
+  return h('section', { class: 'plan', 'aria-label': 'Checked plan' },
+    h('header', {},
+      h('div', {}, h('b', {}, `Checked plan · ${dayLabel(journey.constraints.date)}`), h('small', {}, `From ${journey.origin.name}${journey.calendarConnected ? ' · checked against your calendar' : ''}`)),
+      journey.plans.length > 1 ? h('div', { class: 'options', role: 'tablist', 'aria-label': 'Plan options' }, journey.plans.map((p, i) =>
+        h('button', { type: 'button', role: 'tab', 'aria-selected': p.id === plan.id ? 'true' : 'false', title: p.name, onclick: () => { turn.choice = p.id; turn.calendar = { step: 'idle' }; render(); } }, `Option ${i + 1}`))) : null),
+    h('div', { class: 'plan-body' },
+      h('div', {},
+        timeline(journey, plan),
+        h('p', { class: 'hint' }, `About ${plan.reservedTotal} SEK including transport · ${plan.walking} min walking in total. Times and costs are estimates; opening hours do not guarantee a table or a ticket.`
+          + (limits.length ? ` No ${limits.join(', ').replace(/, ([^,]*)$/, ' or $1')} limit was applied.` : '')),
+        calendarBox(turn, journey, plan)),
+      latest
+        ? h('div', { class: 'plan-map' }, h('details', { class: 'journey-map-disclosure', open: true }, h('summary', {}, 'Map'), h('div', { id: 'journey-map-host', 'aria-label': 'Map of this plan' })), h('p', { class: 'journey-map-status hint', role: 'status' }, 'Loading map…'))
+        : null));
 }
 
 async function send(text) {
@@ -138,7 +231,7 @@ async function send(text) {
   const status = h('span', { class: 'working' }, h('i'), h('i'), h('i'), h('span', {}, state.working));
   const pending = h('div', { class: 'turn assistant', 'aria-live': 'polite' }, status);
   thread.append(pending); thread.scrollTop = thread.scrollHeight;
-  const started = performance.now(), steps = [];
+  const started = performance.now(), sentAt = Date.now(), steps = [];
   let reply = '';
   try {
     await streamReply(text, {
@@ -150,12 +243,14 @@ async function send(text) {
       },
     });
     if (!reply.trim()) throw Error('The assistant finished without an answer. Please try again.');
-    state.turns.push({ role: 'assistant', text: reply.trim(), steps: [...new Set(steps)], seconds: Math.round((performance.now() - started) / 1000) });
+    const turn = { role: 'assistant', text: reply.trim(), steps: [...new Set(steps)], seconds: Math.round((performance.now() - started) / 1000) };
+    if (steps.includes(PLAN_STEP)) await attachLatestPlan(turn, sentAt);
+    state.turns.push(turn);
   } catch (error) {
     state.turns.push({ role: 'assistant', text: error.message, error: true });
   }
   state.sending = false;
-  store.set('daylight-turns', state.turns.slice(-40));
+  saveTurns();
   render();
   if (steps.length) loadProfile(true);  // the assistant may have changed what it remembers
 }
@@ -277,7 +372,19 @@ function statusBox() {
 function renderStatus() { app.querySelector('.status')?.replaceWith(statusBox()); }
 function go(view) { state.view = view; store.set('daylight-view', view); render(); if (view === 'profile') loadProfile(true); }
 
+// Calendar steps are not kept across reloads: a preview must always be fresh.
+function saveTurns() { store.set('daylight-turns', state.turns.slice(-40).map(({ calendar, ...turn }) => turn)); }
+
+// After a reload, the newest plan can be shown again if the server still has it.
+async function restorePlan() {
+  const turn = state.turns.findLast(t => t.planId);
+  if (!turn) return;
+  try { const journey = await api('/api/plans/latest'); if (journey.id === turn.planId) { plans.set(journey.id, journey); render(); } } catch { /* nothing to restore */ }
+}
+
 function render() {
+  mappedPlan = null;
+  queueMicrotask(() => { if (mappedPlan && state.view === 'chat') mountJourneyMap(mappedPlan.journey, mappedPlan.plan); });
   const tab = (view, label) => h('button', { type: 'button', 'aria-current': state.view === view ? 'page' : null, onclick: () => go(view) }, label);
   app.replaceChildren(h('div', { class: 'shell' },
     h('aside', { class: 'side' },
@@ -290,3 +397,4 @@ function render() {
 
 render();
 loadProfile(true);
+restorePlan();
