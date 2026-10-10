@@ -40,6 +40,22 @@ test('the server exposes the page and nothing private, refuses other origins, an
   }finally{await stop(child);clean(dir,'daylight-http-test-');}
 });
 
+test('hosted behind a proxy, the one public address is accepted and every other host or origin is still refused',async()=>{
+  const {request}=await import('node:http');
+  const dir=temp('daylight-hosted-');let child;
+  const call=(host,{method='GET',path='/api/status',origin}={})=>new Promise((done,fail)=>{
+    const req=request({host:'127.0.0.1',port:14336,path,method,headers:{Host:host,...(method==='POST'?{'Content-Type':'application/json'}:{}),...(origin?{Origin:origin}:{})}},res=>{res.resume();res.on('end',()=>done(res.statusCode));});
+    req.on('error',fail);req.end(method==='POST'?'{}':undefined);});
+  try{
+    child=await launch(14336,{DAYLIGHT_DATA_DIR:dir,DAYLIGHT_HERMES_HOME:join(dir,'hermes'),DAYLIGHT_PUBLIC_ORIGIN:'https://demo.example.test/'});
+    assert.equal(await call('demo.example.test'),200);assert.equal(await call('127.0.0.1:14336'),200);
+    assert.equal(await call('evil.example.test'),403);assert.equal(await call('demo.example.test.evil.io'),403);
+    assert.equal(await call('demo.example.test',{method:'POST',path:'/api/calendar/confirm',origin:'https://demo.example.test'}),400); // reached the handler
+    assert.equal(await call('demo.example.test',{method:'POST',path:'/api/calendar/confirm',origin:'https://evil.example.test'}),403);
+    assert.equal(await call('demo.example.test',{method:'POST',path:'/api/calendar/confirm',origin:'http://demo.example.test'}),403);
+  }finally{await stop(child);clean(dir,'daylight-hosted-');}
+});
+
 test('a checked plan reaches the calendar only through an acknowledged preview and one explicit confirmation',async()=>{
   const dir=temp('daylight-loop-'),base='http://127.0.0.1:14329',post=poster(base),date='2026-10-10';let child;
   const start=async()=>{child=await launch(14329,{DAYLIGHT_DATA_DIR:dir,DAYLIGHT_TEST_PROVIDERS:'1',GOOGLE_CLIENT_ID:'test-only',GOOGLE_CLIENT_SECRET:'test-only'},['--import','./tests/calendar-provider.mjs','server.mjs']);};
