@@ -391,7 +391,7 @@ function render() {
       h('div', { class: 'brand' }, sun(), 'Daylight'),
       h('nav', { class: 'nav', 'aria-label': 'Sections' }, tab('chat', 'Chat'), tab('profile', 'What I know')),
       statusBox(),
-      h('a', { class: 'legacy', href: '/legacy.html' }, 'Earlier version')),
+      h('a', { class: 'legacy', href: '/privacy.html' }, 'Data and services')),
     h('main', { class: 'main' }, state.view === 'profile' ? profileView() : chatView())));
 }
 

@@ -10,7 +10,7 @@ if (-not $daylightNode) {
 if ($Background) {
     try {
         $daylightStatus = Invoke-RestMethod 'http://127.0.0.1:4318/api/status' -TimeoutSec 3
-        if ($daylightStatus.city -eq 'Stockholm') { Write-Host 'Daylight is already running at http://127.0.0.1:4318/#live'; exit 0 }
+        if ($daylightStatus.city -eq 'Stockholm') { Write-Host 'Daylight is already running at http://127.0.0.1:4318/'; exit 0 }
         throw 'Another application is using port 4318.'
     } catch {
         if (Get-NetTCPConnection -LocalPort 4318 -State Listen -ErrorAction SilentlyContinue) { throw 'Port 4318 is occupied. No process was stopped.' }
@@ -23,7 +23,7 @@ if ($Background) {
         try { $daylightStatus = Invoke-RestMethod 'http://127.0.0.1:4318/api/status' -TimeoutSec 2 } catch { continue }
         if ($daylightStatus.city -eq 'Stockholm') {
             @{ pid = $daylightProcess.Id; started = $daylightProcess.StartTime.ToUniversalTime().Ticks } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'data/service-process.json')
-            Write-Host "Daylight ready at http://127.0.0.1:4318/#live (PID $($daylightProcess.Id))"
+            Write-Host "Daylight ready at http://127.0.0.1:4318/ (PID $($daylightProcess.Id))"
             exit 0
         }
     }

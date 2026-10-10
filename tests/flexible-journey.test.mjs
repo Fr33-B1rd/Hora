@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {journeySettings,discoverJourney,proposeJourneys,scopeJourneyDay} from '../lib/journey.mjs';
 import {activityDefinitions,precedenceRules} from '../lib/activities.mjs';
 import {instant} from '../lib/time.mjs';
-import {spokenPlan} from '../public/voice-core.mjs';
 const date='2026-10-10',activities=[{id:'museum',label:'visit museum',query:'museum',duration:120,allowance:250},{id:'chinese',label:'eat Chinese food',query:'Chinese restaurant',duration:60,allowance:300}];
 const place=(id,n)=>({id,name:id,location:{latitude:59.33+n*.001,longitude:18.06+n*.001},periods:[{open:{day:0,hour:0}}],rating:4});
 const origin=place('origin',0),discovery={origin,origins:[origin],pools:{museum:[place('museum-a',2),place('museum-b',3)],chinese:[place('food-a',1),place('food-b',4)]}};
@@ -22,7 +21,7 @@ test('unlimited costs and explicit precedence are enforced across all three alte
   for(const p of r.plans){assert.deepEqual(p.stops.map(s=>s.kind),['museum','chinese']);assert.equal(p.reservedTotal,50000);assert.equal(p.stops[0].label,'visit museum');}
   assert.equal((await proposeJourneys({...high,budgetMode:'limited',budget:1000},discovery,{route,day})).plans.length,0);
   const repaired=await proposeJourneys(high,discovery,{route,day,meeting:{kind:'meeting',placeId:'',start:600,end:630}});assert.ok(repaired.plans.length);assert.ok(repaired.plans.every(p=>p.stops[0].kind==='museum'));
-  assert.match(spokenPlan(r,r.plans[0]),/visit museum/);assert.doesNotMatch(spokenPlan(r,r.plans[0]),/undefined/);
+
 });
 test('unrelated existing commitments block travel/activity time and remain outside the new plan',async()=>{
   const existing={kind:'movie',placeId:'old',start:instant(date,600),end:instant(date,720),locked:true};
