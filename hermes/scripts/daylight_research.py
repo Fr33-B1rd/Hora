@@ -104,7 +104,25 @@ def search(topic, limit=25, fetch=None):
     return papers
 
 
+def model_settings():
+    """Key and endpoint for the small model. A scheduled job inherits them from the
+    gateway; a command the agent runs in its terminal does not, so they are then
+    read from the env file the installer pointed to. The key is never stored here."""
+    found = {name: os.environ.get(name) for name in ("NEBIUS_API_KEY", "NEBIUS_BASE_URL")}
+    if not found["NEBIUS_API_KEY"]:
+        try:
+            env_file = json.loads((home() / "daylight" / "config.json").read_text(encoding="utf-8"))["envFile"]
+            for line in Path(env_file).read_text(encoding="utf-8").splitlines():
+                name, _, value = line.partition("=")
+                if name.strip() in found and not found[name.strip()]:
+                    found[name.strip()] = value.strip().strip("'\"")
+        except (OSError, ValueError, KeyError):
+            pass
+    return found["NEBIUS_API_KEY"], (found["NEBIUS_BASE_URL"] or TOKEN_FACTORY).rstrip("/")
+
+
 def ask_fast_model(prompt, timeout=60):
+    key, base = model_settings()
     """One call to the small Nemotron on Nebius Token Factory; returns the reply text."""
     body = json.dumps({
         # The model reasons before it answers; a low cap ends the reply before any answer appears.
@@ -112,8 +130,8 @@ def ask_fast_model(prompt, timeout=60):
         "messages": [{"role": "user", "content": prompt}],
     }).encode()
     request = urllib.request.Request(
-        (os.environ.get("NEBIUS_BASE_URL") or TOKEN_FACTORY).rstrip("/") + "/chat/completions", data=body,
-        headers={"Authorization": "Bearer " + os.environ["NEBIUS_API_KEY"], "Content-Type": "application/json"},
+        base + "/chat/completions", data=body,
+        headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.load(response)["choices"][0]["message"].get("content") or ""
@@ -176,7 +194,7 @@ def feed(args):
     if not state["topics"]:
         print(json.dumps({"wakeAgent": False}))
         return
-    batch, errors = collect(state, screen_with=screen if os.environ.get("NEBIUS_API_KEY") and not args.no_screen else None)
+    batch, errors = collect(state, screen_with=screen if model_settings()[0] and not args.no_screen else None)
     if not args.dry_run:
         if batch:
             state["lastBatch"] = {"date": today().isoformat(), "topics": batch}

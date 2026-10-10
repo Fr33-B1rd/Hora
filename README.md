@@ -17,14 +17,15 @@ What it does today:
 Telegram ─┐
           ├─► Hermes Agent ──► Nebius Token Factory (NVIDIA Nemotron)
 Web page ─┘     │  memory, skills, scheduler
-   ▲            ├─ skills            hermes/skills/        when and how to do each task
+   ▲            ├─ tools (MCP)       mcp/                  offers, food preferences, research topics, day planner, events, news
    │            ├─ job scripts       hermes/scripts/       arXiv and Lidl readers, small-model screening
-   │            └─ planner tools     mcp/planner-server.mjs places, routes, events, news (MCP)
+   │            └─ skills            hermes/skills/        how to write the scheduled digests
    │
    └─ web server  lib/http.mjs   serves the page, relays chat, shows memory, owns calendar writes
 ```
 
 - The agent's main model is `nvidia/nemotron-3-super-120b-a12b`. The scheduled jobs screen papers and offers with the smaller `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B`, and a job script can decide there is nothing new and not wake the agent at all.
+- Everything the user can ask for in conversation is a tool the model calls directly, and each tool result says how to answer from it. This replaced instructions the model had to remember to open first: on the evaluation set below, that change and the fixes that followed took the assistant from 9 of 20 conversations right to 40 of 40 over two runs, with one tool call where there had been three or four.
 - The planner is ordinary code, not the model: the model chooses what to plan, the code works out what actually fits. A time, order or budget is treated as a requirement only if you stated it.
 - The assistant has no tool that writes to your calendar. Writing is done by the web server, after a preview, on your click.
 
@@ -93,7 +94,17 @@ node --test tests/*.test.mjs
 python3 -m unittest discover -s hermes/tests
 ```
 
-Neither suite uses the network or real credentials. [VALIDATION.md](VALIDATION.md) records what was checked against the live services and what was not.
+Neither suite uses the network or real credentials.
+
+The evaluation set is different: 20 real conversations with the running assistant (groceries, research, planning, memory, manner), each judged on what it did and on what its reply may and may not say.
+
+```bash
+node --env-file=.env scripts/eval-assistant.mjs --label mychange --repeat 2
+```
+
+It uses the real model, takes a few minutes, and starts each conversation from a stated world. Your own memory, preferences, topics and schedule are copied aside first and put back afterwards. The cases are in `evals/cases.mjs`.
+
+[VALIDATION.md](VALIDATION.md) records what was checked against the live services and what was not, including how far the evaluation numbers can be trusted.
 
 ## Limits
 

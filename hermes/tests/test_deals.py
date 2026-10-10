@@ -138,6 +138,35 @@ class DiscountTracker(unittest.TestCase):
         self.assertEqual((sorted(n for n, _ in verdicts), complete, len(calls)), ([3, 50], True, 3))
         self.assertEqual(deals.screen(kept, [], "", ask), ([], False))  # nothing known about the user: no call
 
+    def test_each_offer_is_judged_once_until_what_is_known_about_the_user_changes(self):
+        state, asked = deals.load(), []
+        offers = [{"id": str(i), "title": name, "category": "x"} for i, name in enumerate(["Bacon", "Gurka", "Lax"])]
+
+        def model(todo, dislikes, about):
+            asked.append([d["title"] for d in todo])
+            return [(i, "pork") for i, d in enumerate(todo) if d["title"] == "Bacon"], True
+
+        judge = deals.remembered_screen(state, model)
+        self.assertEqual(judge(offers, [], "User hates pork."), ([(0, "pork")], True))
+        self.assertEqual(judge(offers[1:] + offers[:1], [], "User hates pork."), ([(2, "pork")], True))  # same verdicts, new positions
+        more = offers + [{"id": "9", "title": "Ost", "category": "x"}]
+        judge(more, [], "User hates pork.")
+        self.assertEqual(asked, [["Bacon", "Gurka", "Lax"], ["Ost"]])  # only the new offer went to the model
+        judge(more, [{"label": "fish", "terms": ["lax"]}], "User hates pork.")
+        self.assertEqual(len(asked[-1]), 4)  # a new dislike: everything is judged again
+
+        # A batch that failed leaves its unhidden offers unjudged, so they are asked about again next time.
+        state2, calls = deals.load(), []
+
+        def failing(todo, dislikes, about):
+            calls.append(len(todo))
+            return ([(0, "pork")], False) if len(calls) == 1 else ([], True)
+
+        judge2 = deals.remembered_screen(state2, failing)
+        self.assertEqual(judge2(offers, [], "User hates pork."), ([(0, "pork")], False))
+        self.assertEqual(judge2(offers, [], "User hates pork."), ([(0, "pork")], True))
+        self.assertEqual(calls, [3, 2])
+
     def test_offers_are_sent_once_and_hidden_ones_do_not_come_back(self):
         deals.http_get = self.fetch
         deals.PAUSE_SECONDS = 0
@@ -167,6 +196,23 @@ class DiscountTracker(unittest.TestCase):
         self.assertEqual(self.run_cli("feed"), {"wakeAgent": False})  # asking did not change what the digest sends
         deals.today = lambda: DAY + dt.timedelta(days=30)
         self.assertEqual(deals.load()["cache"]["date"], DAY.isoformat())
+
+    def test_the_model_key_comes_from_the_environment_or_the_env_file_the_installer_named(self):
+        for name in ("NEBIUS_API_KEY", "NEBIUS_BASE_URL"):
+            os.environ.pop(name, None)
+        self.assertEqual(deals.model_settings(), (None, deals.TOKEN_FACTORY))  # nothing configured: screening is skipped
+        env_file = os.path.join(self.home.name, "project.env")
+        with open(env_file, "w", encoding="utf-8") as handle:
+            handle.write('# comment\nNEBIUS_API_KEY="from-file"\nNEBIUS_BASE_URL=https://example.test/v1/\nOTHER=x\n')
+        os.makedirs(os.path.join(self.home.name, "daylight"), exist_ok=True)
+        with open(os.path.join(self.home.name, "daylight", "config.json"), "w", encoding="utf-8") as handle:
+            json.dump({"envFile": env_file}, handle)
+        self.assertEqual(deals.model_settings(), ("from-file", "https://example.test/v1"))
+        os.environ["NEBIUS_API_KEY"] = "from-environment"
+        try:
+            self.assertEqual(deals.model_settings()[0], "from-environment")
+        finally:
+            os.environ.pop("NEBIUS_API_KEY", None)
 
 
 if __name__ == "__main__":

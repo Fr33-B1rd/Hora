@@ -15,30 +15,14 @@ metadata:
 
 Tells the user about new food offers at Lidl Sverige and leaves out what they do not want. A script reads Lidl's public weekly offer pages once a day, remembers which offers were already sent, and removes disliked products; you write the message and keep the user's preferences up to date.
 
-All commands use one script: `python3 ~/.hermes/scripts/daylight_deals.py`.
+## In conversation: use the tools, not this skill
 
-## When the user asks about grocery discounts, deals or offers
+Two tools cover everything the user can ask in a chat, and each result says how to answer from it:
 
-Any question such as “any grocery discounts?”, “check the deals”, “is chicken on offer?” is answered from this skill's data, not from a web search.
+- `mcp__daylight__grocery_offers`: what is on offer now (optionally one product). Likes, dislikes and what you remember about the user are already applied.
+- `mcp__daylight__food_preference`: record a food the user likes or avoids, or withdraw one. Call it every time the user states one, however briefly, and save the fact to memory as well. A preference said once must hold from then on.
 
-- Run `daylight_deals.py current` (add `--find kyckling` to look for one product; use the Swedish word, and try the English one if nothing matches).
-- Answer from its output in plain text: offers marked `youLike` first, then the biggest discounts, at most eight lines, each with name, price, previous price or percentage, and the last day. Say how many more there are (`moreNotShown`).
-- Say once that this is Lidl Sverige's national weekly offers. That is the only shop this skill covers. Do not search the web for other shops' promotions or delivery-app vouchers unless the user names that shop or asks you to look elsewhere; if they do, say that those results are unchecked.
-- Apply what you remember about the user yourself. When `screenedByModel` is false the list has only been filtered by the stored match words, so leave out anything the user avoids (a dislike of pork covers fläsk, kotlett, karré, bacon, skinka, ribs, salami, prosciutto), and put what they like first.
-- If your memory holds a food the user avoids or likes that is missing from `dislikes`/`likes` in the output, register it now with the `dislike`/`like` command so the daily message applies it too.
-- Mention what was left out in one line, counting both `leftOut` and anything you removed yourself. Never write that the user has no dislikes when your memory says otherwise.
-- This does not mark anything as sent, so tomorrow's digest is unaffected.
-
-## When the user tells you what they like or avoid
-
-This is the most important part: a preference said once must hold from then on.
-
-- Avoids something (“I hate pork”, “no shellfish”, “I'm vegetarian”): run `daylight_deals.py dislike "pork" --terms fläsk,kotlett,karré,bacon,skinka,sidfläsk,revben,pulled pork`. The label is the user's word. The terms are the Swedish and English product words that identify it on a price tag: give the common ones, lowercase, comma-separated.
-- Likes something (“I love salmon”): `daylight_deals.py like "salmon" --terms lax,salmon`.
-- Changes their mind: `daylight_deals.py forget "pork"`.
-- Also save the fact with the memory tool, because it matters outside groceries too (restaurant choices, recipes).
-- Then confirm in one sentence what will change. `[SILENT]` is only for scheduled runs; in a conversation always answer.
-- To show what is stored: `daylight_deals.py prefs`.
+Do not run the script below from a terminal during a conversation, and do not answer a groceries question from a web search. Lidl Sverige is the only shop covered; if the user names another shop, say so, and search the web only if they ask you to, marking those results as unchecked.
 
 ## When you are run by the schedule
 

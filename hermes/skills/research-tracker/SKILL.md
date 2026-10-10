@@ -16,18 +16,14 @@ metadata:
 
 Keeps a list of research topics for the user, checks arXiv for papers not seen before, and writes a short digest when there is something new. A script does the fetching and remembers what was already sent; you do the judging and the writing.
 
-All commands use one script: `python3 ~/.hermes/scripts/daylight_research.py`.
+## In conversation: use the tool, not this skill
 
-## When the user manages topics
+`mcp__daylight__research_topics` lists the topics, adds one, stops one, and saves a standing preference about one (“skip surveys”, “more benchmarks”). Its result says how to answer.
 
-- Track a topic: `daylight_research.py add "retrieval-augmented generation evaluation"`. Use the user's wording as the name. Add `--category cs.CL` (repeatable) only if the user names a field. Pass `--query` with arXiv syntax (`ti:`, `abs:`, `au:`, `AND`, `OR`) only when the plain words would clearly miss or over-match, and tell the user the query you used.
-- List topics: `daylight_research.py list`.
-- Stop tracking: `daylight_research.py remove TOPIC_ID` (ids come from `list`).
-- After adding, say what is tracked and that the first digest covers the past week. Do not promise a delivery time you have not checked with `hermes cron list`.
-
-## When the user gives feedback on a digest
-
-Feedback such as “more like the second one”, “less theory” or “skip surveys” belongs to that topic: `daylight_research.py note TOPIC_ID "prefers empirical papers; skip surveys"`. Write the note as a standing preference, not as a quote, then confirm to the user in one sentence what will change. `[SILENT]` is only for scheduled runs; in a conversation always answer. Facts about the user that matter beyond research (their field, their employer, what they are building) go to memory instead.
+- “Track …” and “stop tracking …” change the topic list with this tool. They never change the schedule: the one morning job covers every topic.
+- Feedback on a digest is a preference on that topic: save it with `action: note`, written as a standing instruction rather than a quote.
+- Do not fetch papers during a conversation. The script's `feed` command belongs to the schedule: running it by hand uses up papers that the next digest should have delivered.
+- Facts about the user that matter beyond research (their field, what they are building) go to memory.
 
 ## When you are run by the schedule
 

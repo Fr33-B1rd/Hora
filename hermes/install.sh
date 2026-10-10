@@ -32,6 +32,16 @@ echo "instructions: Daylight block written to SOUL.md"
 # The outing planner runs as a tool server on Hermes's own Node, reading the
 # project .env itself so no key is written into Hermes's config.
 project="$(cd "$here/.." && pwd)"
+
+# The job scripts use a small model too. Run by the scheduler they inherit the
+# key from the gateway; run from the agent's terminal they do not, so they are
+# told where the project's .env is. Only the path is written, never the key.
+mkdir -p "$home/daylight"
+python3 - "$home/daylight/config.json" "$project/.env" <<'PY'
+import json, sys
+json.dump({"envFile": sys.argv[2]}, open(sys.argv[1], "w", encoding="utf-8"))
+PY
+echo "scripts: small-model settings are read from $project/.env"
 node="$(ls -d "$home"/tools/node-*/bin/node 2>/dev/null | sort -V | tail -1 || true)"
 servers="$("$hermes" mcp list 2>/dev/null || true)"
 if grep -qw 'daylight' <<<"$servers"; then

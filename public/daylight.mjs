@@ -59,6 +59,9 @@ export function stepLabel(event) {
     if (/outing/.test(label)) return 'Opening the planner';
     return 'Looking up how to do this';
   }
+  if (/grocery_offers/.test(tool)) return 'Reading Lidl’s offers';
+  if (/food_preference/.test(tool)) return 'Updating your food preferences';
+  if (/research_topics/.test(tool)) return 'Checking your research topics';
   if (/plan_day/.test(tool)) return 'Checking places, opening hours and travel';
   if (/find_events/.test(tool)) return 'Looking up events';
   if (/local_news/.test(tool)) return 'Reading local news';

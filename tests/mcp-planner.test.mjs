@@ -16,8 +16,8 @@ test('the tool server speaks the protocol: initialize, list tools, call, unknown
   assert.equal(init.result.protocolVersion,'2025-06-18');assert.ok(init.result.capabilities.tools);assert.match(init.result.instructions,/Today is \d{4}-\d\d-\d\d/);
   assert.equal(await respond({jsonrpc:'2.0',method:'notifications/initialized'}),null);
   const listed=(await respond({jsonrpc:'2.0',id:2,method:'tools/list'})).result.tools;
-  assert.deepEqual(listed.map(t=>t.name),['plan_day','find_events','local_news']);
-  assert.ok(!listed.some(t=>/write|book|pay|confirm/i.test(t.name)));assert.deepEqual(tools[0].inputSchema.required,['date','from','activities']);
+  assert.deepEqual(listed.map(t=>t.name),['plan_day','find_events','local_news','grocery_offers','food_preference','research_topics']);
+  assert.ok(!listed.some(t=>/write|book|pay|confirm/i.test(t.name)));assert.deepEqual(tools[0].inputSchema.required,['date','from','activities','userWords']);
   const called=await respond({jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'echo',arguments:{a:1}}},{echo:async a=>({got:a})});
   assert.deepEqual(JSON.parse(called.result.content[0].text),{got:{a:1}});
   const failed=await respond({jsonrpc:'2.0',id:4,method:'tools/call',params:{name:'boom'}},{boom:async()=>{throw Error('no route');}});
@@ -30,6 +30,7 @@ test('plan_day returns checked plans and applies no limit the caller did not giv
   assert.equal(r.status,'planned');assert.equal(r.from,'Slussen');assert.ok(r.plans.length>=1);
   assert.deepEqual(r.plans[0].stops.map(s=>s.venue).sort(),['Råkultur','Stadsmuseet']);assert.match(r.plans[0].backAt,/^\d\d:\d\d$/);
   assert.deepEqual(r.limitsApplied,{leaveAt:null,backBy:null,budgetSEK:null});assert.equal(r.calendarChecked,true);assert.equal(r.calendarWritten,false);
+  assert.match(r.howToAnswer.join(' '),/option 1 only/);assert.match(r.howToAnswer.join(' '),/cannot add it to a calendar/);assert.match(r.howToAnswer[0],/no markdown/);
 });
 
 test('with no leave time given, the plan does not set off early just to wait at the first stop',async()=>{
@@ -52,6 +53,31 @@ test('a checked plan is saved for the web app with everything a map and a calend
     assert.equal((await readdir(dir)).filter(f=>f.startsWith('plan-')).length,10);
     const failing=await planDay(request,world,async()=>{throw Error('disk full');});assert.equal(failing.status,'planned');
   }finally{await rm(dir,{recursive:true});}
+});
+
+test('an activity whose words are a real place’s name is held to that place; a kind of place is not',async()=>{
+  const {namedVenues}=await import('../mcp/planner-server.mjs');
+  const maps={search:async q=>/moderna/i.test(q)?[at('mm','Moderna Museet')]:/vasa/i.test(q)?[at('v','Vasa Museum Stockholm')]:/sushi/i.test(q)?[at('s','Sushi Bar Söder')]:/broken/i.test(q)?(()=>{throw Error('offline');})():[at('x','Stadsmuseet')]};
+  const out=await namedVenues([{name:'Moderna Museet'},{name:'vasa museum'},{name:'a museum'},{name:'sushi bar'},{name:'museum'},{name:'Art gallery',search:'gallery Södermalm'},{name:'Meet Anna',meetingPoint:true},{name:'Råkultur dinner',place:'Råkultur'},{name:'broken place'}],maps);
+  assert.deepEqual(out.map(a=>a.place||null),['Moderna Museet','vasa museum',null,null,null,null,null,'Råkultur',null]);
+});
+
+test('an order or a return time in the user’s own words is enforced when the call left it out, and nothing else is inferred',async()=>{
+  const {statedInWords}=await import('../mcp/planner-server.mjs');
+  const two=[{name:'ramen'},{name:'museum'}],read=(userWords,extra={})=>{const r=statedInWords({activities:two,userWords,...extra});return [r.keepOrder===true,r.backBy||null];};
+  assert.deepEqual(read('first ramen at 12:30, then Moderna Museet. I must be back at T-Centralen by 17:00.'),[true,'17:00']);
+  assert.deepEqual(read('ramen and a museum, home before 6pm'),[false,'18:00']);
+  assert.deepEqual(read('Museum followed by ramen; done by 9.30 p.m.'),[true,'21:30']);
+  assert.deepEqual(read('ramen and a museum, back by 5'),[false,null]);           // morning or afternoon is not stated
+  assert.deepEqual(read('a museum before 17:00 and ramen after'),[false,null]);     // “before” here limits the museum, not the return
+  assert.deepEqual(read('I get back from work by 15:00; ramen and a museum'),[false,'15:00']);  // known over-read: this “back” is not the outing’s
+  assert.deepEqual(read('ramen at 12:30 and a museum'),[false,null]);
+  assert.deepEqual(read('back by 17:00',{backBy:'16:00'}),[false,'16:00']);         // what the call says is never overridden
+  assert.equal(statedInWords({activities:[{name:'ramen'}],userWords:'first ramen'}).keepOrder,undefined);
+  assert.deepEqual(statedInWords({activities:two}).activities,two);
+  // Through the planner: the order in the words holds even though keepOrder was not passed.
+  const r=await planDay({...request,userWords:'First sushi, then a museum.',activities:[{name:'Sushi',search:'sushi restaurant'},{name:'Visit a museum'}]},world);
+  assert.equal(r.status,'planned');assert.ok(r.plans.every(p=>p.stops[0].activity==='Sushi'));
 });
 
 test('times, order and limits in the call are requirements, never relaxed as assumptions',async()=>{

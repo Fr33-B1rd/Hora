@@ -518,3 +518,34 @@ Tests: 220 before, 75 after, all passing; Python suite unchanged at 13. The drop
 Also rewritten in English for the current system: `README.md`, `GOOGLE_SETUP.md`, `public/privacy.html`. After restarting the web server on the slimmed code: `/legacy.html` returns 404, the earlier conversation and its plan card were restored from the tab's storage with the map, and a grocery question was answered from Lidl data in 10 s.
 
 Not done: no evaluation set exists for the Hermes path yet (the old one tested the deleted loop); the plan card was not checked at phone width; `models/` and `.venv-voice/` (untracked, from the removed voice feature) are still on disk.
+
+
+## 2026-10-10 — Evaluation set for the assistant; everyday actions moved from skills to tools
+
+Evaluation set. `evals/cases.mjs` holds 20 conversations run against the live agent by `scripts/eval-assistant.mjs`: groceries 7, research 4, planner 6, memory 2, manner 1. Each starts from a seeded world (memory entries, food preferences, topics) and is judged on tools run, state written and reply content; five checks apply to every reply (not empty, no `[SILENT]`, no markdown, at most 1500 characters, no internal names). Plan replies are checked against the saved plan: any clock time the planner did not produce fails. The user's memory, preferences, topics and schedule are copied to `data/eval-backup/` first and restored afterwards, also after an interrupted run; memory and the job list were read back after the runs below and matched.
+
+Baseline, before any change: **9/20**, median 10 s and 38k prompt tokens per turn. What it showed:
+- The agent followed a skill's rules only when it opened the skill, and it often did not. “I hate pork”, “I love salmon” and “I'm vegetarian” were saved to memory but never reached the offers tracker; “pork is fine again” left the stored dislike in place.
+- “Stop tracking retrieval-augmented generation” made the agent **delete a scheduled job** instead of the topic. The job was `trial-arxiv`, a finished one-off left from the first Hermes trial; the two Daylight jobs were untouched. The first version of the harness did not protect the schedule, so this deletion is real and was not undone.
+- Feedback on a topic ran the script's `feed` command by hand, which marks papers as sent, and returned a 2132-character digest.
+- Planner replies skipped the skill entirely: markdown, all three options listed, nothing said about the calendar being the user's step; a named venue and a stated order were not passed on.
+- With a skill opened, a simple question cost three to four model calls (80–120k prompt tokens), often running the same script twice by two different routes.
+
+Change. Conversation actions are now tools on the existing tool server (`mcp/everyday-tools.mjs`): `grocery_offers`, `food_preference`, `research_topics`, beside `plan_day`, `find_events`, `local_news`. They run the same job scripts as the scheduler, so chat and the morning digests share state. Every tool result carries a `howToAnswer` list. The skills keep only the scheduled-digest instructions. Standing instructions now forbid changing the schedule unless asked in those words. Related fixes:
+- The job scripts find the small model's key through a path the installer records (`~/.hermes/daylight/config.json` holds the path to the project `.env`, never the key), so remembered facts are applied when the user asks in chat, not only in the morning job.
+- Screening runs its batches in parallel and remembers verdicts until the user's preferences or memory change.
+- Withdrawing a preference returns the memory entries that are now out of date, so the agent removes them instead of adding a contradicting one.
+- A named venue put in the wrong field is recognised when the top search result has exactly that name.
+- An order (“first… then…”) or a return time (“back by 17:00”) present in the user's own words is enforced by code when the model omits it.
+
+Results, same day, same data: 15/20 after the tools; 38/40 over two runs after the follow-up fixes; **40/40 over two further runs** after the planner safety nets. Median 6.7 s and 40k prompt tokens per turn; slowest turn 22.7 s (first screening of the week's offers for a new preference; one earlier run had a 72 s turn of the same kind before parallel screening). Skill-free answers take one tool call where they took three or four.
+
+Read these numbers with care:
+- Checks changed between baseline and final. Two were wrong and were corrected (they counted the closing “left out 15 pork items” line as showing pork). Two were relaxed on purpose: a dislike known only from memory, or a diet, no longer has to be copied into the tracker's list, because the small model now applies memory directly; the reply must still show no such offer. The baseline's failures on those cases had other causes as well, but 9/20 and 40/40 were not judged by an identical rulebook.
+- 40/40 on a set written the same day by the one fixing the failures is a floor against regressions, not a measure of quality. The set has one phrasing per situation and no long conversations.
+- `plan-with-stated-limits` passed only after code began enforcing order and return time from the user's words; before that the model dropped one of the four conditions in 4 of 5 runs. Conditions the code cannot read (a venue listed under a different name, a budget, a start time) still depend on the model.
+- The return-time reader has a known over-read, recorded in the tests: “I get back from work by 15:00” is taken as the outing's return time.
+
+Tests: 88 Node, 15 Python, all passing (new: tool handlers against a fake script runner, harness state protection, named-venue and stated-words rules, verdict memory, key lookup).
+
+Not done: Telegram was not re-tested after these changes, only the API the web page uses; the scheduled digests were not re-run with the shortened skills; the base prompt is still about 20k tokens per model call, most of it Hermes's bundled tools and skills.

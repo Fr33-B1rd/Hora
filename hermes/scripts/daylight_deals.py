@@ -19,6 +19,7 @@ what this is. Standard library only. State: $HERMES_HOME/daylight/deals.json.
 """
 import argparse
 import datetime as dt
+import hashlib
 import html as htmllib
 import json
 import os
@@ -26,6 +27,7 @@ import re
 import sys
 import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 SITE = "https://www.lidl.se"
@@ -47,7 +49,7 @@ def state_path():
 def load():
     path = state_path()
     state = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-    for key, empty in (("seen", {}), ("likes", []), ("dislikes", []), ("cache", None)):
+    for key, empty in (("seen", {}), ("likes", []), ("dislikes", []), ("cache", None), ("screened", None)):
         state.setdefault(key, empty)
     return state
 
@@ -182,15 +184,33 @@ def matches(deal, terms):
     return any(term and term.lower() in haystack for term in terms)
 
 
+def model_settings():
+    """Key and endpoint for the small model. A scheduled job inherits them from the
+    gateway; a command the agent runs in its terminal does not, so they are then
+    read from the env file the installer pointed to. The key is never stored here."""
+    found = {name: os.environ.get(name) for name in ("NEBIUS_API_KEY", "NEBIUS_BASE_URL")}
+    if not found["NEBIUS_API_KEY"]:
+        try:
+            env_file = json.loads((home() / "daylight" / "config.json").read_text(encoding="utf-8"))["envFile"]
+            for line in Path(env_file).read_text(encoding="utf-8").splitlines():
+                name, _, value = line.partition("=")
+                if name.strip() in found and not found[name.strip()]:
+                    found[name.strip()] = value.strip().strip("'\"")
+        except (OSError, ValueError, KeyError):
+            pass
+    return found["NEBIUS_API_KEY"], (found["NEBIUS_BASE_URL"] or TOKEN_FACTORY).rstrip("/")
+
+
 def ask_fast_model(prompt, timeout=90):
+    key, base = model_settings()
     body = json.dumps({
         # The model reasons before it answers; a low cap ends the reply before any answer appears.
         "model": os.environ.get("DAYLIGHT_FAST_MODEL", FAST_MODEL), "temperature": 0, "max_tokens": 8000,
         "messages": [{"role": "user", "content": prompt}],
     }).encode()
     request = urllib.request.Request(
-        (os.environ.get("NEBIUS_BASE_URL") or TOKEN_FACTORY).rstrip("/") + "/chat/completions", data=body,
-        headers={"Authorization": "Bearer " + os.environ["NEBIUS_API_KEY"], "Content-Type": "application/json"},
+        base + "/chat/completions", data=body,
+        headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.load(response)["choices"][0]["message"].get("content") or ""
@@ -209,17 +229,38 @@ def screen(deals, dislikes, about_user, ask=ask_fast_model):
         return [], False
     # A long list makes the model run out of tokens while still reasoning, so it
     # is judged in batches, each with one retry. A batch that still fails hides nothing.
-    verdicts, complete = [], True
-    for offset in range(0, len(deals), SCREEN_BATCH):
-        batch = deals[offset:offset + SCREEN_BATCH]
+    def judge(offset):
         for _attempt in (1, 2):
-            found = _screen_batch(batch, dislikes, about_user, ask)
+            found = _screen_batch(deals[offset:offset + SCREEN_BATCH], dislikes, about_user, ask)
             if found is not None:
-                verdicts += [(offset + n, why) for n, why in found]
-                break
-        else:
-            complete = False
-    return verdicts, complete
+                return [(offset + n, why) for n, why in found]
+        return None
+
+    with ThreadPoolExecutor(max_workers=4) as pool:  # batches are independent; waiting on them one by one is most of the delay
+        results = list(pool.map(judge, range(0, len(deals), SCREEN_BATCH)))
+    return [v for found in results if found for v in found], all(found is not None for found in results)
+
+
+def remembered_screen(state, screen_with=None):
+    """Screening that asks the model about each offer only once: verdicts are kept with the
+    state for as long as the user's dislikes and remembered facts stay the same."""
+    screen_with = screen_with or screen
+
+    def run(deals, dislikes, about_user):
+        key = hashlib.sha256(json.dumps([sorted(d["label"] for d in dislikes), about_user.strip()], ensure_ascii=False).encode()).hexdigest()[:16]
+        memo = state.get("screened") or {}
+        if memo.get("key") != key:
+            memo = {"key": key, "verdicts": {}}
+        state["screened"] = memo
+        todo, complete = [d for d in deals if d["id"] not in memo["verdicts"]], True
+        if todo:
+            found, complete = screen_with(todo, dislikes, about_user)
+            hidden = dict(found)
+            for index, deal in enumerate(todo):  # after a failed batch only the hidden ones are certain
+                if complete or index in hidden:
+                    memo["verdicts"][deal["id"]] = hidden.get(index)
+        return [(i, memo["verdicts"][d["id"]]) for i, d in enumerate(deals) if memo["verdicts"].get(d["id"])], complete
+    return run
 
 
 def _screen_batch(deals, dislikes, about_user, ask):
@@ -275,12 +316,12 @@ def feed(args):
     except Exception as error:
         print(json.dumps({"wakeAgent": False, "error": str(error)[:200]}))
         return
-    use_model = bool(os.environ.get("NEBIUS_API_KEY")) and not args.no_screen
-    fresh, kept, hidden, screened = select(state, deals, profile(), screen if use_model else None)
+    use_model = bool(model_settings()[0]) and not args.no_screen
+    fresh, kept, hidden, screened = select(state, deals, profile(), remembered_screen(state) if use_model else None)
     if args.dry_run and state.get("cache"):
-        # A dry run consumes nothing, but still records today's pages so they are not fetched twice.
+        # A dry run consumes nothing, but still records today's pages and verdicts so the work is not repeated.
         kept_state = load()
-        kept_state["cache"] = state["cache"]
+        kept_state.update(cache=state["cache"], screened=state.get("screened"))
         save(kept_state)
     if not args.dry_run:
         for deal in fresh:  # hidden offers count as seen too: they are not offered again tomorrow
@@ -307,16 +348,16 @@ def current(args):
     except Exception as error:
         print(json.dumps({"error": "Could not read Lidl's offer pages: " + str(error)[:160]}))
         return
-    if state.get("cache"):
-        kept_state = load()
-        kept_state["cache"] = state["cache"]
-        save(kept_state)
     live = [d for d in deals if d["until"] >= day.isoformat()]
     if args.find:
         live = [d for d in live if matches(d, [args.find])]
     view = dict(state, seen={})  # everything current counts, sent before or not
-    use_model = bool(os.environ.get("NEBIUS_API_KEY")) and not args.no_screen
-    _fresh, kept, hidden, screened = select(view, live, profile(), screen if use_model else None)
+    use_model = bool(model_settings()[0]) and not args.no_screen
+    _fresh, kept, hidden, screened = select(view, live, profile(), remembered_screen(state) if use_model else None)
+    if state.get("cache"):
+        kept_state = load()
+        kept_state.update(cache=state["cache"], screened=state.get("screened"))
+        save(kept_state)
     print(json.dumps({
         "date": day.isoformat(), "store": "Lidl Sverige (national weekly offers)", "totalOffers": len(live),
         "offers": kept[:args.limit], "moreNotShown": max(0, len(kept) - args.limit),
