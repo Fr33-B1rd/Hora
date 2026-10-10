@@ -156,7 +156,12 @@ wait_for http://127.0.0.1:8642/health && echo "assistant: running" || { echo "as
 wait_for http://127.0.0.1:4318/api/status && echo "web server: running" || { echo "web server: NOT answering  (sudo journalctl -u daylight-web -n 40)"; ok=0; }
 reach="$(curl -fsS -m 5 http://127.0.0.1:4318/api/assistant/status || true)"
 case "$reach" in *'"reachable":true'*) echo "web server -> assistant: connected" ;; *) echo "web server -> assistant: NOT connected"; ok=0 ;; esac
-code="$(curl -s -m 20 -o /dev/null -w '%{http_code}' "https://$host/" || true)"
+code=000
+for _ in $(seq 1 12); do  # a first certificate takes up to a minute to be issued
+  code="$(curl -s -m 10 -o /dev/null -w '%{http_code}' "https://$host/" || true)"
+  [ "$code" = 401 ] && break
+  sleep 5
+done
 [ "$code" = 401 ] && echo "https://$host: certificate issued, password required" || { echo "https://$host: got '$code' (the certificate can take a minute; check with: sudo journalctl -u caddy -n 40)"; ok=0; }
 for port in 4318 8642; do ss -ltn | grep -q "127.0.0.1:$port " || echo "warning: port $port is not bound to loopback only; check before going further"; done
 
