@@ -5,3 +5,4 @@ data/
 .venv-voice/
 models/
 __pycache__/
+*.import
