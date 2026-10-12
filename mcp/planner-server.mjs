@@ -15,6 +15,7 @@ import {localNews} from '../lib/local-news.mjs';
 import {dateInStockholm,dayBounds,validDate} from '../lib/time.mjs';
 import {everydayTools,everydayHandlers} from './everyday-tools.mjs';
 import {jobTools,jobHandlers} from './job-tools.mjs';
+import {calendarTools,calendarHandlers,eventsOf,open as openCalendar} from './calendar-tools.mjs';
 
 const clockText={type:'string',pattern:'^([01]\\d|2[0-4]):[0-5]\\d$',description:'24-hour HH:MM, Stockholm time'};
 const plain='Plain text for a chat app: no markdown, no bold, no headings, no tables, no bullet lists.';
@@ -38,13 +39,14 @@ export const tools=[
   {name:'find_events',description:'Curated Visit Stockholm events with a session on the given date (and following days). Not a complete listing; ticket availability is unknown.',inputSchema:{type:'object',additionalProperties:false,required:['date'],properties:{date:{type:'string',description:'YYYY-MM-DD'},days:{type:'integer',minimum:1,maximum:14},near:{type:'string',description:'Landmark to search around; defaults to Stockholm Central'}}}},
   {name:'local_news',description:'Recent Stockholm regional headlines from SVT with links (titles and summaries, not full articles).',inputSchema:{type:'object',additionalProperties:false,properties:{}}},
   ...everydayTools,
-  ...jobTools
+  ...jobTools,
+  ...calendarTools
 ];
 
 const services=()=>{
   const maps=createMaps(process.env.GOOGLE_MAPS_API_KEY);
   // The calendar is optional here: without it, plans are checked against places and travel only.
-  const calendar=async date=>{try{const {createStore}=await import('../lib/store.mjs'),{createCalendar}=await import('../lib/calendar.mjs');const store=createStore(process.env.DAYLIGHT_DATA_DIR||fileURLToPath(new URL('../data/',import.meta.url)));const c=createCalendar({clientId:process.env.GOOGLE_CLIENT_ID,clientSecret:process.env.GOOGLE_CLIENT_SECRET,redirect:process.env.GOOGLE_REDIRECT_URI||'http://127.0.0.1:4318/api/google/callback'},store);if(c.status().connected)return await c.day(date);}catch{}return {date,...dayBounds(date),busy:[],own:[],connected:false};};
+  const calendar=async date=>{try{const c=openCalendar().calendar;if(c.status().connected)return await c.day(date);}catch{}return {date,...dayBounds(date),busy:[],own:[],connected:false};};
   return {maps,calendarDay:calendar,getChecks:()=>({revision:0,items:{}}),saveJourney:()=>'mcp',evidence:[],eventDetails};
 };
 
@@ -88,6 +90,8 @@ export function statedInWords(args){
 export async function planDay(args,make=services,save=null){
   validDate(args.date);
   const id='plan-'+Date.now().toString(36)+'-'+randomBytes(4).toString('hex'),world=make();let entry=null;
+  // The day's calendar is read once and kept, so the reply can name what the plan was fitted around.
+  let dayRead=null;const readDay=world.calendarDay;world.calendarDay=async date=>dayRead||(dayRead=await readDay(date));
   world.saveJourney=value=>{entry=value;return id;};
   const text=JSON.stringify(args),env=createAgentEnvironment({text},world);
   args={...statedInWords(args),activities:await namedVenues(args.activities,world.maps)};
@@ -106,13 +110,14 @@ export async function planDay(args,make=services,save=null){
   return {status:r.planChoices.length?(r.status==='route_draft'?'draft_needs_verification':'planned'):'nothing_fits',date:args.date,from:r.actualOrigin?.name,
     plans:r.planChoices.map(p=>({option:p.displayNumber,name:p.name,stops:p.stops,legs:p.legs.map(l=>({mode:l.mode,depart:l.depart,arrive:l.arrive,minutes:l.minutes})),backAt:p.returnAt,estimatedCostSEK:p.reserveSEK,walkingMinutes:p.walking,waits:(p.gaps||[]).filter(g=>g.minutes>=30).map(g=>g.minutes+' min')})),
     ...(r.planChoices.length?{}:{why:r.outcome,blockers:(r.diagnostics||[]).slice(0,4).map(d=>d.message),ways_forward:(r.repairOptions||[]).map(o=>o.explanation)}),
-    notes:(journey?.notes||[]).slice(0,6),limitsApplied:{leaveAt:args.leaveAt||null,backBy:args.backBy||null,budgetSEK:args.budgetSEK??null},calendarChecked:journey?.calendarConnected===true,
+    notes:(journey?.notes||[]).slice(0,6),limitsApplied:{leaveAt:args.leaveAt||null,backBy:args.backBy||null,budgetSEK:args.budgetSEK??null},calendarChecked:journey?.calendarConnected===true,alreadyInCalendar:dayRead&&dayRead.connected!==false?eventsOf(dayRead):[],
     caveats:['Times and costs are estimates.','Opening hours do not guarantee a table, a ticket or stock.'],calendarWritten:false,
     howToAnswer:r.planChoices.length?[plain,
       'Describe option 1 only, in two to four sentences: the order with its key times, when they are back, the estimated cost, and one trade-off worth knowing.',
       r.planChoices.length>1?`Say that ${r.planChoices.length-1} other option${r.planChoices.length>2?'s exist':' exists'}; do not describe them unless asked.`:null,
       'Use only clock times that appear in this result. Say once that times and costs are estimates.',
-      'The plan is now shown with a map in the Daylight web page, where the user can add it to their calendar themselves. You cannot add it to a calendar, book or pay: if they asked for that, say it is their step and where.'].filter(Boolean)
+      dayRead&&dayRead.connected!==false&&eventsOf(dayRead).length?'The user already has the events in alreadyInCalendar that day, and the plan was fitted around them: say so first, naming each with its time.':null,
+      'The plan is now shown with a map in the Daylight web page, where the user can add it to their calendar themselves after seeing every block. You cannot add a plan to the calendar, book or pay: if they asked for that, say it is their step and where.'].filter(Boolean)
       :[plain,'Say what blocks the plan, using why and blockers, and offer the ways forward. Do not drop a requirement the user gave without asking.']};
 }
 export async function findEvents({date,days=1,near='Stockholm Centralstation'},make=services){
@@ -120,14 +125,14 @@ export async function findEvents({date,days=1,near='Stockholm Centralstation'},m
   return {date,days,source:'Visit Stockholm (curated)',events:r.events.map(e=>({title:e.title,venue:e.venue,sessions:e.occurrences?.length?e.occurrences:'no session times published',description:(e.description||'').slice(0,300),link:e.url})),
     howToAnswer:[plain,'At most three events. For each: the title, the venue and its session time on that date in one sentence, then the link on its own line. If an event has no published session, say so.','This is a curated list, not everything that is on; ticket availability is unknown.']};
 }
-const handlers={...everydayHandlers,...jobHandlers,plan_day:args=>planDay(args,services,persistPlan),find_events:findEvents,local_news:async()=>{const r=await localNews();return {source:'SVT Stockholm',items:r.cards.map(c=>({title:c.translatedTitle||c.title,original:c.title,published:c.publishedAt,link:c.url}))};}};
+const handlers={...everydayHandlers,...jobHandlers,...calendarHandlers,plan_day:args=>planDay(args,services,persistPlan),find_events:findEvents,local_news:async()=>{const r=await localNews();return {source:'SVT Stockholm',items:r.cards.map(c=>({title:c.translatedTitle||c.title,original:c.title,published:c.publishedAt,link:c.url}))};}};
 
 // Minimal JSON-RPC 2.0 over newline-delimited stdio, as MCP's stdio transport specifies.
 export async function respond(message,run=handlers){
   const {id,method,params}=message;
   if(id===undefined)return null;
   const ok=result=>({jsonrpc:'2.0',id,result});
-  if(method==='initialize')return ok({protocolVersion:params?.protocolVersion||'2025-03-26',capabilities:{tools:{}},serverInfo:{name:'daylight',version:'0.2.0'},instructions:`Daylight plans days out in Stockholm (SEK, Europe/Stockholm), reads Lidl Sverige's weekly offers, keeps the user's food preferences and research topics, and watches job postings against their CV. Today is ${dateInStockholm()}. Each result says how to answer from it.`});
+  if(method==='initialize')return ok({protocolVersion:params?.protocolVersion||'2025-03-26',capabilities:{tools:{}},serverInfo:{name:'daylight',version:'0.2.0'},instructions:`Daylight plans days out in Stockholm (SEK, Europe/Stockholm), reads Lidl Sverige's weekly offers, keeps the user's food preferences and research topics, and watches job postings against their CV. Today is ${dateInStockholm()}. It can read the user's Google Calendar and add an event after they confirm. Each result says how to answer from it.`});
   if(method==='ping')return ok({});
   if(method==='tools/list')return ok({tools});
   if(method==='tools/call'){

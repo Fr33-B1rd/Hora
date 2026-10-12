@@ -62,6 +62,9 @@ export function stepLabel(event) {
   if (/grocery_offers/.test(tool)) return 'Reading Lidl’s offers';
   if (/food_preference/.test(tool)) return 'Updating your food preferences';
   if (/research_topics/.test(tool)) return 'Checking your research topics';
+  if (/calendar_day/.test(tool)) return 'Reading your calendar';
+  if (/calendar_propose/.test(tool)) return 'Checking your calendar for that time';
+  if (/calendar_confirm/.test(tool)) return 'Adding it to your calendar';
   if (/job_matches/.test(tool)) return 'Looking through job postings';
   if (/job_search_profile/.test(tool)) return 'Updating your job search';
   if (/job_application_advice/.test(tool)) return 'Reading the posting against your CV';
@@ -397,6 +400,20 @@ function careerCard() {
     note('career'));
 }
 
+function calendarCard() {
+  const calendar = state.profile.calendar || {};
+  const run = async work => { try { await work(); state.notes.calendar = ''; } catch (error) { state.notes.calendar = error.message; } render(); };
+  return h('section', { class: 'card' },
+    h('h2', {}, 'Calendar'),
+    h('p', {}, calendar.connected ? 'Google Calendar is connected. The assistant can read your day, and adds an event only after you confirm it in the conversation. It cannot change or delete events, or invite anyone.'
+      : 'Connect Google Calendar so plans are fitted around what you already have, and so you can ask for an event to be added.'),
+    !calendar.configured ? h('p', { class: 'empty' }, 'Calendar access is not set up on this server.')
+      : calendar.connected
+        ? h('div', { class: 'add' }, h('button', { class: 'quiet', type: 'button', onclick: () => run(async () => { await api('/api/google/disconnect', {}); await loadProfile(); }) }, 'Disconnect'))
+        : h('div', { class: 'add' }, h('button', { type: 'button', onclick: () => run(async () => { location.href = (await api('/api/google/connect', {})).url; }) }, 'Connect Google Calendar')),
+    note('calendar'));
+}
+
 function jobsCard() {
   const { jobs, jobsError } = state.profile;
   return h('section', { class: 'card wide' },
@@ -419,7 +436,7 @@ function profileView() {
   if (!state.profile) return [head, h('div', { class: 'know' }, h('p', { class: 'empty' }, state.profileError || 'Loading…'))];
   return [head, h('div', { class: 'know' },
     memoryCard('user', 'About you', 'Kept in mind in every conversation, on every channel.'),
-    careerCard(), foodCard(), topicsCard(), jobsCard(),
+    careerCard(), foodCard(), topicsCard(), calendarCard(), jobsCard(),
     state.profile.memory.notes.entries.length ? memoryCard('notes', 'Assistant’s own notes', 'What it has learned about doing things for you.') : null)];
 }
 

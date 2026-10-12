@@ -10,7 +10,7 @@ import {join} from 'node:path';
 import {homedir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {cases} from '../evals/cases.mjs';
-import {createReplyReader,protectState,seedState,readState,restoreSchedule,everyReply} from '../evals/harness.mjs';
+import {createReplyReader,protectState,seedState,readState,restoreSchedule,seedCalendar,readCalendar,everyReply} from '../evals/harness.mjs';
 
 const args=process.argv.slice(2),option=name=>{const i=args.indexOf('--'+name);return i>=0?args[i+1]:null;};
 const root=fileURLToPath(new URL('..',import.meta.url));
@@ -34,20 +34,25 @@ async function ask(text,session){
 }
 const latestPlan=async since=>{const file=join(dataDirectory,'plans','latest.json');try{if((await stat(file)).mtimeMs<since)return null;return JSON.parse(await readFile(file,'utf8'));}catch{return null;}};
 
+// The stand-in calendar's file, when the assistant under test was started with one (see evals/README in VALIDATION.md).
+const calendarFile=process.env.DAYLIGHT_EVAL_CALENDAR||null;
+const pause=seconds=>new Promise(resolve=>setTimeout(resolve,seconds*1000));
 async function runCase(c,base,round){
-  await seedState(home,base,c.seed);
+  if(c.area==='calendar'&&!calendarFile)return {id:c.id,area:c.area,passed:false,skipped:true,problems:['skipped: needs the stand-in calendar (set DAYLIGHT_EVAL_CALENDAR)'],replies:[],seconds:0,tokens:0,toolCalls:0};
+  await seedState(home,base,c.seed);await seedCalendar(calendarFile,c.seed?.calendar);
   const before=await readState(home),started=Date.now(),replies=[],stamp=started.toString(36);
   let conversation=0;
   try{
-    for(const turn of c.turns){if(turn.fresh)conversation++;replies.push({say:turn.say,...await ask(turn.say,`eval-${c.id}-${stamp}-${round}-${conversation}`)});}
+    for(const turn of c.turns){if(turn.fresh)conversation++;if(turn.after)await pause(turn.after);  // a person takes a moment to read and answer
+      const reply=await ask(turn.say,`eval-${c.id}-${stamp}-${round}-${conversation}`);replies.push({say:turn.say,...reply,calendar:await readCalendar(calendarFile)});}
   }catch(error){return {id:c.id,area:c.area,passed:false,problems:['did not finish: '+(error.name==='TimeoutError'?'no reply within 4 minutes':error.message)],replies,seconds:(Date.now()-started)/1000,tokens:0,toolCalls:0};}
-  const ctx={replies,last:replies.at(-1),state:await readState(home),before,plan:await latestPlan(started)};
+  const ctx={replies,last:replies.at(-1),state:await readState(home),before,plan:await latestPlan(started),calendar:await readCalendar(calendarFile)};
   // No conversation in this set asks for a change to the schedule.
   const scheduleChanged=JSON.stringify(ctx.state.jobs)!==JSON.stringify(before.jobs);
   if(scheduleChanged)await restoreSchedule(home,backupDirectory);
   const problems=[...(scheduleChanged?[`changed the user’s scheduled jobs without being asked: ${before.jobs.join(', ')||'none'} → ${ctx.state.jobs.join(', ')||'none'}`]:[]),...replies.flatMap((r,i)=>everyReply.map(check=>check(r)).filter(Boolean).map(p=>(replies.length>1?`turn ${i+1}: `:'')+p)),...c.check(ctx)];
   return {id:c.id,area:c.area,passed:!problems.length,problems,
-    replies:replies.map(r=>({say:r.say,text:r.text,tools:r.tools.map(t=>t.tool+(t.label?': '+t.label.slice(0,160):'')),seconds:r.seconds,promptTokens:r.usage?.prompt_tokens??null})),
+    replies:replies.map(r=>({say:r.say,calendarWrites:r.calendar?.writes??null,text:r.text,tools:r.tools.map(t=>t.tool+(t.label?': '+t.label.slice(0,160):'')),seconds:r.seconds,promptTokens:r.usage?.prompt_tokens??null})),
     seconds:Math.round(replies.reduce((n,r)=>n+r.seconds,0)*10)/10,tokens:replies.reduce((n,r)=>n+(r.usage?.prompt_tokens||0),0),toolCalls:replies.reduce((n,r)=>n+r.tools.length,0),
     wrote:{memory:ctx.state.memory!==before.memory,likes:ctx.state.likes.map(p=>p.label),dislikes:ctx.state.dislikes.map(p=>p.label+' ['+p.terms.join(',')+']'),topics:ctx.state.topics.map(t=>t.name+(t.notes.length?' ('+t.notes.join('; ')+')':'')),planRequest:ctx.plan?.request||null}};
 }

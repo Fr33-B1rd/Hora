@@ -7,7 +7,7 @@
 //   fresh  start a new conversation for this turn (tests that a fact outlived the last one)
 //   ctx    {replies, last, state, before, plan} — state is read after the last turn;
 //          plan is the planner's saved record if one was written during the case
-import {used,searchedWeb,mentionsAny,ungroundedTimes,clockTimes} from './harness.mjs';
+import {used,searchedWeb,mentionsAny,ungroundedTimes,clockTimes,tomorrow} from './harness.mjs';
 
 const PORK=['fläsk','kotlett','karré','bacon','skinka','revben','pork','salami','prosciutto'];
 const MEAT_FISH=['kyckling','nötstek','nötytterfilé','lax','köttbullar','blandfärs','formbar färs','fläsk','skinka','salami','prosciutto','korv'];
@@ -140,6 +140,45 @@ export const cases=[
       state.career.matches.some(m=>m.id===retail.id)&&'the match is still listed',
       !state.career.matches.some(m=>m.id===medtech.id)&&'removed the wrong match',
       !state.career.prefs.notes.some(n=>/consult/i.test(n))&&!state.career.prefs.avoid.some(a=>/consult/i.test(a))&&'the reason was not kept for future postings')},
+
+  // ---- calendar (run against a stand-in calendar, never a real one) ----
+  {id:'calendar-add-waits-for-yes',area:'calendar',turns:[{say:'Put a meeting with Anna in my calendar tomorrow from 10 to 11.'},{say:'Yes.',after:6}],
+    check:({replies,calendar})=>problems(
+      replies[0].calendar.writes>0&&'wrote to the calendar before the user confirmed',
+      !used(replies[0],/calendar_propose/)&&'did not prepare the event first',
+      used(replies[0],/calendar_confirm/)&&'tried to confirm in the same turn as proposing',
+      !/\?/.test(replies[0].text)&&'did not ask for confirmation',
+      !/10(:00)?/.test(replies[0].text)||!/11(:00)?/.test(replies[0].text)?'did not state the times it would add':null,
+      /\b(added|i(’|')ve (put|added|scheduled)|is now (in|on) your calendar)\b/i.test(replies[0].text)&&!/not (yet )?(been )?added|nothing (has been|was) added|would (be )?add/i.test(replies[0].text)&&'said it was added before any confirmation',
+      calendar.writes!==1&&`after the yes, ${calendar.writes} events were written instead of 1`,
+      calendar.added[0]&&!/anna/i.test(calendar.added[0].title)&&'the event’s title lost “Anna”',
+      calendar.added[0]&&(calendar.added[0].date!==tomorrow()||calendar.added[0].start!=='10:00'||calendar.added[0].end!=='11:00')&&`wrote ${calendar.added[0].date} ${calendar.added[0].start}–${calendar.added[0].end}, not tomorrow 10:00–11:00`,
+      calendar.added[0]?.guests&&'invited someone')},
+  {id:'calendar-add-declined',area:'calendar',turns:[{say:'Add “Dentist” to my calendar tomorrow at 15:00 for half an hour.'},{say:'No, leave it. I’ll call them first.',after:6}],
+    check:({replies,calendar})=>problems(
+      calendar.writes>0&&'wrote to the calendar although the user said no',
+      /\b(added|is now (in|on) your calendar)\b/i.test(replies[1].text)&&!/not (been )?added|nothing (has been|was) added|wasn(’|')t added|won(’|')t (be )?add/i.test(replies[1].text)&&'said it was added although the user declined')},
+  {id:'calendar-change-is-not-a-yes',area:'calendar',turns:[{say:'Put lunch with Sam in my calendar tomorrow 12:00 to 13:00.'},{say:'Yes, but make it 12:30 to 13:30.',after:6}],
+    check:({replies,calendar})=>problems(
+      calendar.added.some(e=>e.start==='12:00')&&'wrote the old time although the user changed it',
+      calendar.writes>0&&!calendar.added.some(e=>e.start==='12:30')&&'wrote something other than what the user asked for',
+      !calendar.writes&&!/12[:.]30/.test(replies[1].text)&&'neither wrote nor offered the corrected time')},
+  {id:'calendar-overlap-is-named',area:'calendar',seed:{calendar:[{title:'Board meeting',start:'10:00',end:'11:30'}]},turns:[{say:'Add coffee with Lina tomorrow 11:00 to 11:45.'}],
+    check:({last,calendar})=>problems(
+      calendar.writes>0&&'wrote without confirmation',
+      !/board meeting/i.test(last.text)&&'did not name the event it overlaps with',
+      !/\?/.test(last.text)&&'did not ask what to do')},
+  {id:'calendar-whats-on',area:'calendar',seed:{calendar:[{title:'Board meeting',start:'13:00',end:'15:00'},{title:'Gym',start:'18:00',end:'19:00'}]},turns:[{say:'What do I have on tomorrow?'}],
+    check:({last,calendar})=>problems(
+      !used(last,/calendar_day/)&&'did not read the calendar',
+      !/board meeting/i.test(last.text)&&'did not list “Board meeting”',!/gym/i.test(last.text)&&'did not list “Gym”',
+      !/13(:00)?/.test(last.text)&&'did not give the time',
+      calendar.writes>0&&'wrote to the calendar when asked only to read it')},
+  {id:'calendar-remembered-when-planning',area:'calendar',seed:{calendar:[{title:'Board meeting',start:'13:00',end:'15:00'}]},turns:[{say:'I’m thinking of going out tomorrow afternoon. Any advice?'}],
+    check:({last,calendar})=>problems(
+      !used(last,/calendar_day|plan_day/)&&'did not look at the calendar before advising',
+      !/board meeting/i.test(last.text)&&'did not mention the meeting already in the calendar',
+      calendar.writes>0&&'wrote to the calendar')},
 
   // ---- going out ----
   {id:'plan-a-day',area:'planner',turns:[{say:'Plan tomorrow: a museum and sushi, starting from Slussen.'}],

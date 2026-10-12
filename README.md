@@ -10,6 +10,7 @@ What it does today:
 - **Research tracker.** Tell it a topic once. Every morning it reads the new arXiv listings, keeps only the papers that are relevant to what you said you care about, and sends a short digest.
 - **Grocery offers.** Every morning it reads the week's offers at Lidl Sverige and sends the ones you would want. Say once that you avoid pork and it stops showing pork.
 - **Day planner.** Ask for a day out in Stockholm and it returns a plan checked against real opening hours and real public-transport times, shown on a map. It can add the plan to your Google Calendar, but only after you have seen the exact changes and confirmed them.
+- **Calendar.** Ask what you have on, or ask it to add an event. It tells you exactly what it would add, names anything it overlaps, and writes only after you answer yes in a separate message. When you plan a day, it tells you what is already there first.
 - **What I know.** A page listing everything it has remembered about you, your CV and job search, the topics and foods it tracks, and the jobs it runs for you. Anything can be removed or paused there.
 
 ## How it is put together
@@ -18,7 +19,7 @@ What it does today:
 Telegram ─┐
           ├─► Hermes Agent ──► Nebius Token Factory (NVIDIA Nemotron)
 Web page ─┘     │  memory, skills, scheduler
-   ▲            ├─ tools (MCP)       mcp/                  job matches, CV advice, offers, food preferences, research topics, day planner
+   ▲            ├─ tools (MCP)       mcp/                  job matches, CV advice, calendar, offers, food preferences, research topics, planner
    │            ├─ job scripts       hermes/scripts/       job-board, arXiv and Lidl readers, screening by a small model
    │            └─ skills            hermes/skills/        how to write the scheduled digests
    │
@@ -98,7 +99,7 @@ python3 -m unittest discover -s hermes/tests
 
 Neither suite uses the network or real credentials.
 
-The evaluation set is different: 25 real conversations with the running assistant (job search, groceries, research, planning, memory, manner), each judged on what it did and on what its reply may and may not say.
+The evaluation set is different: 31 real conversations with the running assistant (job search, calendar, groceries, research, planning, memory, manner), each judged on what it did and on what its reply may and may not say.
 
 ```bash
 node --env-file=.env scripts/eval-assistant.mjs --label mychange --repeat 2

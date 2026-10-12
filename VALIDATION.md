@@ -577,3 +577,34 @@ Not done or not verified:
 - The checks are heuristics: “wanted” and “met” are model judgments constrained by code, not ground truth. Five conversations is a thin evaluation.
 - The other twenty evaluation conversations were not re-run after this change.
 - For testing, the tool server reads the real assistant home even when the assistant runs from the development copy (Hermes does not pass its home to tool servers), so the evaluation's test data was written to the real local home and restored afterwards. A first, mis-aimed run left two test preferences in the local job profile, which did not exist before today; that file was then deleted.
+
+
+## 2026-10-12 — Calendar in conversation: read a day, add an event after a separate yes
+
+What was built. Three tools on the tool server (`mcp/calendar-tools.mjs`): `calendar_day` (a day's events with titles and times), `calendar_propose` (prepares one event, names what it overlaps, writes nothing) and `calendar_confirm` (writes it). `plan_day` now returns `alreadyInCalendar` so a plan's reply can say what it was fitted around. A “Calendar” card on the “What I know” page connects and disconnects Google Calendar. By the user's decision, event titles are now sent to the model; descriptions and guests still are not.
+
+The rule that nothing is written without the user's confirmation is held by code, because the model does not reliably keep it:
+- a proposal is stored on the server, expires after 15 minutes and can be written once;
+- the confirming call must quote the user's message, and only a plain yes passes (“yes”, “ok”, “go ahead”…); anything with “no”, “but”, “change”, “make it”, “maybe” does not;
+- a confirmation arriving within 4 seconds of the proposal is refused as being the same turn.
+In the evaluation run the model did call propose and confirm in one turn (when the user said “Yes, but make it 12:30”), and the code refused it: nothing was written and the reply asked again with the corrected time.
+
+Tested with a stand-in calendar kept in a file (`tests/calendar-provider.mjs`, with every other request going out as usual), never a real calendar. Six conversations, two runs: 11/12, then the failing one 3/3 after the tool result was made to insist that existing events are named first.
+- “Put a meeting with Anna in my calendar tomorrow from 10 to 11” → asked first, 0 writes; “Yes.” → 1 event, tomorrow 10:00–11:00, titled with Anna, no guests.
+- Declined (“No, leave it”) → 0 writes.
+- “Yes, but make it 12:30 to 13:30” → 0 writes of the old time.
+- An event overlapping a seeded “Board meeting” → the overlap was named and the user asked.
+- “What do I have on tomorrow?” → both seeded events with times.
+- “I'm thinking of going out tomorrow afternoon. Any advice?” with a seeded “Board meeting 13:00–15:00” → the reply names the meeting before asking where the user starts.
+
+Whole evaluation set after this change, same setup: 31 conversations, all passing (29/31 on the first pass; the two failures were the runner looking for saved plans in the wrong folder, and passed when pointed at the right one). The development copy of the assistant now also gives its tools their own home, which removes the cross-contamination noted in the previous entry.
+
+Tests: 106 Node, 23 Python, all passing.
+
+Not done or not verified:
+- **Nothing has been written to a real Google Calendar by these tools.** The request shape is the one the existing plan confirmation already uses successfully, but the first real event will be on the VM.
+- Changing or deleting an event is not possible; the assistant says so.
+- The yes-detector is a word list in English and a little Swedish. An unusual yes (“yes — though not the notes”) is refused and the user is asked again; an unusual no that begins with an agreeing word and contains none of the listed negatives could pass.
+- The 4-second rule assumes a person does not answer within 4 seconds of the question appearing.
+- Recurring events, other calendars than the primary one, and time zones other than Europe/Stockholm are not handled.
+- Saved plans in `data/plans/` now include the titles of that day's events, since the planner keeps the day it read.

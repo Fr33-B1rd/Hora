@@ -63,8 +63,9 @@ test('manual edits after preview are retained and partial writes retry without d
   await assert.rejects(f.calendar.write(date,stops,preview,'proposal2'),/modified/);
   assert.equal(f.events.get(eventId(date,'hair')).etag,'manually-edited');
 });
-test('all-day events block the Stockholm day without leaking event titles',async()=>{
-  const f=fixture();f.events.set('external',{id:'external',summary:'Private title',start:{date},end:{date:'2026-10-11'}});const d=await f.calendar.day(date);assert.equal(d.busy.length,1);assert.equal(d.busy[0].start,instant(date,0));assert.ok(!JSON.stringify(d).includes('Private title'));
+test('all-day events block the Stockholm day; a title is read, but never a description or the guests',async()=>{
+  const f=fixture();f.events.set('external',{id:'external',summary:'Board meeting',description:'Private notes',attendees:[{email:'guest@example.com'}],start:{date},end:{date:'2026-10-11'}});const d=await f.calendar.day(date);assert.equal(d.busy.length,1);assert.equal(d.busy[0].start,instant(date,0));
+  assert.equal(d.busy[0].title,'Board meeting');assert.equal(d.busy[0].allDay,true);assert.ok(!JSON.stringify(d).includes('Private notes'));assert.ok(!JSON.stringify(d).includes('guest@example.com'));
 });
 test('lost successful response is reconciled on retry without another insertion',async()=>{
   const f=fixture(),day=await f.calendar.day(date);f.lose('hair');await assert.rejects(f.calendar.write(date,stops,day,'proposal1'),/not be fully confirmed/);assert.equal(f.events.size,1);

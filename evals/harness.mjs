@@ -3,6 +3,7 @@
 // must pass. Kept apart from the runner so they can be unit-tested.
 import {readFile,writeFile,mkdir,rm,cp,access} from 'node:fs/promises';
 import {join,dirname} from 'node:path';
+import {instant,localParts,dateInStockholm,nextDate} from '../lib/time.mjs';
 
 const SEPARATOR='\n§\n';
 // The schedule is included: a conversation must not change it, and if one does it is put back.
@@ -66,6 +67,22 @@ export async function readState(home){
   const [user,notes,deals,research,cron,career]=await Promise.all([readText(join(home,'memories/USER.md')),readText(join(home,'memories/MEMORY.md')),readJson(join(home,'daylight/deals.json'),{}),readJson(join(home,'daylight/research.json'),{}),readJson(join(home,'cron/jobs.json'),{}),readJson(join(home,'daylight/jobs.json'),{})]);
   const jobs=(Array.isArray(cron)?cron:cron.jobs||[]).map(j=>`${j.name||j.id} [${j.enabled===false?'paused':'on'} ${j.schedule?.expr||j.schedule_display||''}]`).sort();
   return {career:{cv:career.cv||null,prefs:{roles:[],places:[],languages:[],avoid:[],notes:[],remote:'yes',...career.prefs},matches:career.matches||[]},jobs,memory:(user+'\n'+notes).trim(),likes:deals.likes||[],dislikes:deals.dislikes||[],topics:research.topics||[],offers:(deals.cache?.deals||[]).map(d=>d.title),deals,research};
+}
+
+// ---- the stand-in calendar ----
+// Calendar conversations run against a calendar kept in a file (tests/calendar-provider.mjs),
+// never a real one. `file` is that calendar; without it those conversations are skipped.
+export const tomorrow=()=>nextDate(dateInStockholm());
+const minutes=text=>Number(text.slice(0,2))*60+Number(text.slice(3));
+export async function seedCalendar(file,events=[]){
+  if(!file)return;
+  const held=Object.fromEntries(events.map((e,i)=>['seed'+i,{id:'seed'+i,summary:e.title,start:{dateTime:instant(e.date||tomorrow(),minutes(e.start))},end:{dateTime:instant(e.date||tomorrow(),minutes(e.end))},etag:'s'+i}]));
+  await write(file,JSON.stringify({events:held,writes:0}));
+}
+export async function readCalendar(file){
+  if(!file)return null;
+  const state=await readJson(file,{events:{},writes:0}),hhmm=iso=>{const p=localParts(Date.parse(iso));return p.hour+':'+p.minute;};
+  return {writes:state.writes,added:Object.values(state.events).filter(e=>!String(e.id).startsWith('seed')).map(e=>({title:e.summary,date:dateInStockholm(Date.parse(e.start.dateTime)),start:hhmm(e.start.dateTime),end:hhmm(e.end.dateTime),guests:(e.attendees||[]).length}))};
 }
 
 // ---- what a reply may and may not contain ----

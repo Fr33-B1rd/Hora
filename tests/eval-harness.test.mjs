@@ -57,16 +57,16 @@ test('the checks on every reply catch chat-unfriendly output and leaked internal
 });
 
 test('every case has a unique id, something to say and a check that reports problems as text',()=>{
-  assert.equal(new Set(cases.map(c=>c.id)).size,cases.length);assert.ok(cases.length>=25);
-  const reply={text:'ok',tools:[],usage:null},state={memory:'',likes:[],dislikes:[],topics:[],offers:[],career:{cv:null,prefs:{roles:[],places:[],languages:[],avoid:[],notes:[],remote:'yes'},matches:[]}};
+  assert.equal(new Set(cases.map(c=>c.id)).size,cases.length);assert.ok(cases.length>=31);
+  const untouchedCalendar={writes:0,added:[]},reply={text:'ok',tools:[],usage:null,calendar:untouchedCalendar},state={memory:'',likes:[],dislikes:[],topics:[],offers:[],career:{cv:null,prefs:{roles:[],places:[],languages:[],avoid:[],notes:[],remote:'yes'},matches:[]}};
   for(const c of cases){
     assert.ok(c.turns.length&&c.turns.every(t=>t.say),c.id);
-    const found=c.check({replies:c.turns.map(()=>reply),last:reply,state,before:state,plan:null});
+    const found=c.check({replies:c.turns.map(()=>reply),last:reply,state,before:state,plan:null,calendar:untouchedCalendar});
     assert.ok(Array.isArray(found)&&found.every(p=>typeof p==='string'),c.id);
   }
   // A reply of just “ok” that leaves the seeded world untouched must not satisfy any case that requires an action.
   const career=c=>({cv:c.seed?.career?.cv||null,prefs:{roles:[],places:[],languages:[],avoid:[],notes:[],remote:'yes',...c.seed?.career?.prefs},matches:c.seed?.career?.matches||[]});
   const untouched=c=>({...state,career:career(c),memory:(c.seed?.memory||[]).join(' '),likes:c.seed?.likes||[],dislikes:c.seed?.dislikes||[],topics:(c.seed?.topics||[]).map(t=>({...t,notes:[]}))});
-  const lazy=cases.filter(c=>!c.check({replies:c.turns.map(()=>reply),last:reply,state:untouched(c),before:untouched(c),plan:null}).length).map(c=>c.id);
-  assert.deepEqual(lazy,['small-talk']);
+  const lazy=cases.filter(c=>!c.check({replies:c.turns.map(()=>reply),last:reply,state:untouched(c),before:untouched(c),plan:null,calendar:untouchedCalendar}).length).map(c=>c.id);
+  assert.deepEqual(lazy.sort(),['calendar-add-declined','small-talk']);
 });

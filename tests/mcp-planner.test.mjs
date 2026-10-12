@@ -16,8 +16,8 @@ test('the tool server speaks the protocol: initialize, list tools, call, unknown
   assert.equal(init.result.protocolVersion,'2025-06-18');assert.ok(init.result.capabilities.tools);assert.match(init.result.instructions,/Today is \d{4}-\d\d-\d\d/);
   assert.equal(await respond({jsonrpc:'2.0',method:'notifications/initialized'}),null);
   const listed=(await respond({jsonrpc:'2.0',id:2,method:'tools/list'})).result.tools;
-  assert.deepEqual(listed.map(t=>t.name),['plan_day','find_events','local_news','grocery_offers','food_preference','research_topics','job_search_profile','job_matches','job_application_advice']);
-  assert.ok(!listed.some(t=>/write|book|pay|confirm/i.test(t.name)));assert.deepEqual(tools[0].inputSchema.required,['date','from','activities','userWords']);
+  assert.deepEqual(listed.map(t=>t.name),['plan_day','find_events','local_news','grocery_offers','food_preference','research_topics','job_search_profile','job_matches','job_application_advice','calendar_day','calendar_propose','calendar_confirm']);
+  assert.ok(!listed.some(t=>/write|book|pay|buy|invite/i.test(t.name)));assert.deepEqual(tools[0].inputSchema.required,['date','from','activities','userWords']);
   const called=await respond({jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'echo',arguments:{a:1}}},{echo:async a=>({got:a})});
   assert.deepEqual(JSON.parse(called.result.content[0].text),{got:{a:1}});
   const failed=await respond({jsonrpc:'2.0',id:4,method:'tools/call',params:{name:'boom'}},{boom:async()=>{throw Error('no route');}});
@@ -30,7 +30,7 @@ test('plan_day returns checked plans and applies no limit the caller did not giv
   assert.equal(r.status,'planned');assert.equal(r.from,'Slussen');assert.ok(r.plans.length>=1);
   assert.deepEqual(r.plans[0].stops.map(s=>s.venue).sort(),['Råkultur','Stadsmuseet']);assert.match(r.plans[0].backAt,/^\d\d:\d\d$/);
   assert.deepEqual(r.limitsApplied,{leaveAt:null,backBy:null,budgetSEK:null});assert.equal(r.calendarChecked,true);assert.equal(r.calendarWritten,false);
-  assert.match(r.howToAnswer.join(' '),/option 1 only/);assert.match(r.howToAnswer.join(' '),/cannot add it to a calendar/);assert.match(r.howToAnswer[0],/no markdown/);
+  assert.match(r.howToAnswer.join(' '),/option 1 only/);assert.match(r.howToAnswer.join(' '),/cannot add a plan to the calendar/);assert.match(r.howToAnswer[0],/no markdown/);
 });
 
 test('with no leave time given, the plan does not set off early just to wait at the first stop',async()=>{

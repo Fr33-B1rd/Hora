@@ -34,7 +34,7 @@ Use the `daylight` tools (their names start with `mcp__daylight__`, with double 
 - `nothing_fits`: say what blocks it, using `why` and `blockers`, and offer the `ways_forward`. Do not soften a requirement the user gave without asking.
 - `not_planned`: say what was missing or could not be found.
 - Times and costs are estimates; opening hours do not guarantee a table or a ticket. Say so once, briefly.
-- You cannot book, pay or add anything to the calendar. If asked, say that confirming is done by the user.
+- You cannot book or pay. A checked plan is added to the calendar by the user in the Daylight web page. A single event the user asks for goes through `calendar_propose`, then `calendar_confirm` after their yes.
 
 ## Events and news
 
