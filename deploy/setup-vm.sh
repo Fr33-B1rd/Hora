@@ -18,7 +18,7 @@ say() { printf '\n== %s\n' "$*"; }
 
 say "1/7 System packages"
 sudo apt-get update -qq
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl git python3 caddy >/dev/null
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl git python3 caddy poppler-utils >/dev/null   # poppler-utils: pdftotext, to read an uploaded CV
 echo "curl, git, python3 $(python3 -c 'import sys;print(".".join(map(str,sys.version_info[:3])))'), caddy $(caddy version | cut -d' ' -f1)"
 
 say "2/7 Hermes Agent"

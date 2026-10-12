@@ -30,6 +30,9 @@
 <h2>Scheduled jobs</h2>
 <p>The research digest sends the search words of your topics to the public arXiv service, then asks a small Nemotron model which new papers are relevant. The grocery job reads Lidl Sverige's public weekly offer pages once a day and asks the same model which offers match your likes and dislikes. Digests are delivered through Telegram, so their text passes through Telegram's servers. You can pause either job on the “What I know” page.</p>
 
+<h2>Job search</h2>
+<p>A CV you upload is turned into text on this server and kept in the assistant's home folder; the file itself is not kept. To check postings against it, the CV text and your stated preferences are sent to Nemotron models on Nebius, together with the text of each posting. The job titles you ask for are sent as search words to Arbetsförmedlingen's public job listings and to the remote-job boards Himalayas and Jobicy; your CV is never sent to them. Each match links to the original posting at its source. You can remove the CV, and with it every match, on the “What I know” page. Nothing is ever sent to an employer: applying is yours to do.</p>
+
 <h2>Plans, places and events</h2>
 <p>Planning a day sends place searches, place IDs and departure times to Google Maps. Events come from Visit Stockholm's public listings and news from SVT Stockholm's public feed. The map on this page connects to Google directly with a separate browser key that is restricted to this address; the server's key is never sent to the page. The ten most recent checked plans are kept in the local data folder so this page can show them.</p>
 

@@ -6,10 +6,11 @@ Daylight is built on [Hermes Agent](https://github.com/NousResearch/hermes-agent
 
 What it does today:
 
+- **Job seeker.** Upload your CV and say what you are looking for. Every few hours it reads new postings from Sweden's public job listings and from remote-job boards, rules out what your preferences exclude, and checks the rest against your CV requirement by requirement. You hear only when one fits, with the CV lines that show each requirement and the requirements you do not meet. Ask how to adapt your CV for one and it will tell you what to bring forward and what is missing; it will not suggest adding anything your CV does not contain.
 - **Research tracker.** Tell it a topic once. Every morning it reads the new arXiv listings, keeps only the papers that are relevant to what you said you care about, and sends a short digest.
 - **Grocery offers.** Every morning it reads the week's offers at Lidl Sverige and sends the ones you would want. Say once that you avoid pork and it stops showing pork.
 - **Day planner.** Ask for a day out in Stockholm and it returns a plan checked against real opening hours and real public-transport times, shown on a map. It can add the plan to your Google Calendar, but only after you have seen the exact changes and confirmed them.
-- **What I know.** A page listing everything it has remembered about you, the topics and foods it tracks, and the jobs it runs for you. Anything can be removed or paused there.
+- **What I know.** A page listing everything it has remembered about you, your CV and job search, the topics and foods it tracks, and the jobs it runs for you. Anything can be removed or paused there.
 
 ## How it is put together
 
@@ -17,14 +18,15 @@ What it does today:
 Telegram ─┐
           ├─► Hermes Agent ──► Nebius Token Factory (NVIDIA Nemotron)
 Web page ─┘     │  memory, skills, scheduler
-   ▲            ├─ tools (MCP)       mcp/                  offers, food preferences, research topics, day planner, events, news
-   │            ├─ job scripts       hermes/scripts/       arXiv and Lidl readers, small-model screening
+   ▲            ├─ tools (MCP)       mcp/                  job matches, CV advice, offers, food preferences, research topics, day planner
+   │            ├─ job scripts       hermes/scripts/       job-board, arXiv and Lidl readers, screening by a small model
    │            └─ skills            hermes/skills/        how to write the scheduled digests
    │
    └─ web server  lib/http.mjs   serves the page, relays chat, shows memory, owns calendar writes
 ```
 
 - The agent's main model is `nvidia/nemotron-3-super-120b-a12b`. The scheduled jobs screen papers and offers with the smaller `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B`, and a job script can decide there is nothing new and not wake the agent at all.
+- The job seeker reads each posting twice with different models. The small model lists what the posting requires, without the CV in view, so that hard requirements are not quietly dropped. The larger model then checks each requirement against the CV and must quote the CV words that show it; code accepts a requirement as met only if those words are really in the CV, and the fit shown is simply how many requirements were met.
 - Everything the user can ask for in conversation is a tool the model calls directly, and each tool result says how to answer from it. This replaced instructions the model had to remember to open first: on the evaluation set below, that change and the fixes that followed took the assistant from 9 of 20 conversations right to 40 of 40 over two runs, with one tool call where there had been three or four.
 - The planner is ordinary code, not the model: the model chooses what to plan, the code works out what actually fits. A time, order or budget is treated as a requirement only if you stated it.
 - The assistant has no tool that writes to your calendar. Writing is done by the web server, after a preview, on your click.
@@ -96,7 +98,7 @@ python3 -m unittest discover -s hermes/tests
 
 Neither suite uses the network or real credentials.
 
-The evaluation set is different: 20 real conversations with the running assistant (groceries, research, planning, memory, manner), each judged on what it did and on what its reply may and may not say.
+The evaluation set is different: 25 real conversations with the running assistant (job search, groceries, research, planning, memory, manner), each judged on what it did and on what its reply may and may not say.
 
 ```bash
 node --env-file=.env scripts/eval-assistant.mjs --label mychange --repeat 2
@@ -112,4 +114,6 @@ It uses the real model, takes a few minutes, and starts each conversation from a
 - The planner knows Stockholm: times are Europe/Stockholm, costs are in SEK, events come from Visit Stockholm and news from SVT.
 - Opening hours do not guarantee a table or a ticket, and costs are estimates. Nothing is booked or paid for.
 - Grocery offers cover Lidl Sverige only.
+- Job postings come from Arbetsförmedlingen's JobSearch API (Sweden) and from Himalayas and Jobicy (remote roles), each credited and linked. There is no source for on-site jobs in other countries: the large job sites do not permit automated reading. Postings written in Swedish are ruled out unless Swedish is one of your working languages.
+- A job match means the posting's main requirements were found in your CV; it is not a prediction that you will get the job. Reading a PDF CV needs `pdftotext` (poppler-utils) on the server; Word and text files need nothing extra.
 - What leaves your machine, and what is stored on it, is described on the page's “Data and services” link ([public/privacy.html](public/privacy.html)).

@@ -549,3 +549,31 @@ Read these numbers with care:
 Tests: 88 Node, 15 Python, all passing (new: tool handlers against a fake script runner, harness state protection, named-venue and stated-words rules, verdict memory, key lookup).
 
 Not done: Telegram was not re-tested after these changes, only the API the web page uses; the scheduled digests were not re-run with the shortened skills; the base prompt is still about 20k tokens per model call, most of it Hermes's bundled tools and skills.
+
+
+## 2026-10-12 — Job seeker
+
+What was built. `hermes/scripts/daylight_jobs.py` (reader, rules, screening, state in `~/.hermes/daylight/jobs.json`), three tools on the tool server (`mcp/job-tools.mjs`: `job_search_profile`, `job_matches`, `job_application_advice`), a scheduled job every three hours (`daylight-job-matches`, silent unless a new posting fits), a skill for its message, CV upload and a “Job search” card on the “What I know” page (`lib/documents.mjs`, `editCareer` in `lib/profile.mjs`), and five evaluation conversations.
+
+Sources and terms, checked on the providers' own pages on 2026-10-12: Arbetsförmedlingen's JobSearch API (Sweden; no key; “free for anyone to use” per Arbetsförmedlingen, the exact data licence was not found stated), Himalayas and Jobicy (remote roles; no key; both require credit and a link back, Jobicy at most one sync an hour, Himalayas refreshes daily). The script reads Sweden on each run and the two remote boards at most once a day, credits each match's source and keeps its original link. Adzuna and Jooble were looked at and not used: their terms restrict use to publishing their listings or to a short trial. LinkedIn and Indeed were not considered because they forbid automated reading.
+
+How a match is decided, and why it changed three times during live trials with a fictional CV (`deploy/demo/cv-maria-lind.md`, roles “data scientist, machine learning engineer”, Stockholm, English):
+1. One prompt asking the small model for a 0–100 fit: 6 of 10 postings “matched”, including an open application for embedded software. Too lenient.
+2. Requirement-by-requirement with evidence quoted from the CV, verified in code: weak matches disappeared, but every match showed “no gaps”, because a model shown posting and CV together listed only the requirements the CV met.
+3. Two readings: requirements extracted from the posting without the CV in view, then checked against the CV. Gaps appeared, but the small model was erratic at checking (it marked “Python” unmet for a CV listing Python) and nothing matched.
+4. Current: small model extracts, the larger Nemotron checks. On the same data: 110 postings read; 101 ruled out by code from stated preferences (87 remote roles not open to applicants in Sweden, 9 outside Stockholm, 2 off-title, 2 older than a month, 1 in Swedish); 9 judged; 4 matched, each with quoted CV lines and plausible gaps (for example “experience with medical image segmentation”); an open application, a platform-engineer role and a data-engineer role were correctly marked as not the kind of role wanted. A first look takes 40–65 s; later looks only read what is new.
+
+A requirement counts as met only when at least 70 percent of the quoted evidence's words are in the CV; fit is met ÷ listed; a match needs the role to be wanted, at least three requirements, and two thirds met.
+
+Web page, checked in the browser against the local server: a text file uploaded through the file picker was read and listed; preferences saved from the form; after a real look through the tool server the card listed two matches with “Meets 5 of 6 main requirements”, the supporting CV quotes, what is not in the CV, the source and a Dismiss button. No console errors. Word files and PDFs are covered by automated tests only (a Word file built in the test; PDF through a stand-in for `pdftotext`): **no real PDF or Word CV has been uploaded yet**, and the local Windows machine has no `pdftotext`, so PDF reading is untested end to end.
+
+Conversations (evaluation set, `--area jobs`, against a development copy of the assistant with no Telegram settings): 13/15 over three runs, then the one failing case 3/3 after its check was corrected. The corrected check had flagged honest advice (“Missing: Kubernetes in production”, “be ready to discuss how you would learn it”) as dishonest; it now flags only an instruction to put a missing skill into the CV, and was tried on a deliberately dishonest reply, which it catches. One real fault was found and fixed: “Drop the Handelskonsult one, I don't want consultancies” was handled as a preference change, which cleared every match; ruling something out now keeps the matches it does not touch, and the tool descriptions say to dismiss a named match.
+
+Tests: 99 Node, 23 Python, all passing.
+
+Not done or not verified:
+- The scheduled run has not fired on its own yet, and its Telegram message has not been seen. The run itself was exercised through the tests and through `current --refresh`.
+- Only one CV and one set of preferences were tried live. Match quality for other professions, for Swedish-speaking users, or for junior roles is unknown.
+- The checks are heuristics: “wanted” and “met” are model judgments constrained by code, not ground truth. Five conversations is a thin evaluation.
+- The other twenty evaluation conversations were not re-run after this change.
+- For testing, the tool server reads the real assistant home even when the assistant runs from the development copy (Hermes does not pass its home to tool servers), so the evaluation's test data was written to the real local home and restored afterwards. A first, mis-aimed run left two test preferences in the local job profile, which did not exist before today; that file was then deleted.

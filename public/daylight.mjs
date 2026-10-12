@@ -62,6 +62,9 @@ export function stepLabel(event) {
   if (/grocery_offers/.test(tool)) return 'Reading Lidl’s offers';
   if (/food_preference/.test(tool)) return 'Updating your food preferences';
   if (/research_topics/.test(tool)) return 'Checking your research topics';
+  if (/job_matches/.test(tool)) return 'Looking through job postings';
+  if (/job_search_profile/.test(tool)) return 'Updating your job search';
+  if (/job_application_advice/.test(tool)) return 'Reading the posting against your CV';
   if (/plan_day/.test(tool)) return 'Checking places, opening hours and travel';
   if (/find_events/.test(tool)) return 'Looking up events';
   if (/local_news/.test(tool)) return 'Reading local news';
@@ -339,6 +342,61 @@ function topicsCard() {
     note('topic'));
 }
 
+// Reads a chosen file as base64 for upload (the server extracts the text).
+const fileAsBase64 = file => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+  reader.onerror = () => reject(Error('That file could not be read.'));
+  reader.readAsDataURL(file);
+});
+
+function careerCard() {
+  const { cv, prefs, matches, lastLooked } = state.profile.career;
+  const ui = state.career ||= { paste: false, edit: false, busy: false };
+  const act = (data) => change('career', data, 'career');
+  const file = h('input', { type: 'file', accept: '.pdf,.docx,.txt,.md', 'aria-label': 'CV file', async onchange() {
+    const chosen = file.files[0]; if (!chosen) return;
+    if (chosen.size > 3e6) { state.notes.career = 'That file is larger than 3 MB.'; return render(); }
+    ui.busy = true; render();
+    try { await act({ action: 'cv_file', name: chosen.name, data: await fileAsBase64(chosen) }); } finally { ui.busy = false; render(); }
+  } });
+  const pasted = h('textarea', { rows: '6', placeholder: 'Paste the text of your CV', 'aria-label': 'CV text' });
+  const field = (key, label, hint) => h('label', { class: 'field' }, h('span', {}, label), h('input', { type: 'text', name: key, value: (prefs[key] || []).join(', '), placeholder: hint }));
+  const remote = h('select', { name: 'remote', 'aria-label': 'Remote work' }, [['yes', 'Remote roles are welcome too'], ['no', 'On-site only'], ['only', 'Remote roles only']].map(([value, text]) => h('option', { value, selected: prefs.remote === value }, text)));
+  const summary = [prefs.roles.length ? prefs.roles.join(', ') : 'no roles stated', prefs.places.length ? 'in ' + prefs.places.join(', ') : 'anywhere', { yes: 'remote welcome', no: 'on-site only', only: 'remote only' }[prefs.remote], prefs.languages.length ? 'works in ' + prefs.languages.join(', ') : null, prefs.avoid.length ? 'avoiding ' + prefs.avoid.join(', ') : null].filter(Boolean).join(' · ');
+  const ready = cv && prefs.roles.length;
+  return h('section', { class: 'card wide' },
+    h('h2', {}, 'Job search'),
+    h('p', {}, ready ? `Postings from Sweden’s public listings and remote-job boards are checked against your CV every few hours${lastLooked ? `; last looked ${when(lastLooked)}` : ''}. You hear only when one fits.` : 'Add your CV and the kind of role you want, and postings will be checked against it in the background. You hear only when one fits.'),
+    h('h3', {}, 'Your CV'),
+    cv ? h('ul', { class: 'rows' }, h('li', {}, h('span', {}, cv.name, h('small', {}, `${cv.characters.toLocaleString('en-GB')} characters of text read · added ${cv.added}`)),
+      h('span', { class: 'actions' }, h('button', { class: 'link danger', type: 'button', onclick: () => act({ action: 'cv_remove' }) }, 'Remove'))))
+      : h('p', { class: 'empty' }, 'No CV yet.'),
+    h('div', { class: 'add' },
+      h('label', { class: 'upload' + (ui.busy ? ' busy' : '') }, ui.busy ? 'Reading…' : cv ? 'Replace with a file' : 'Upload a file', file),
+      h('button', { class: 'quiet', type: 'button', onclick: () => { ui.paste = !ui.paste; render(); } }, ui.paste ? 'Cancel' : 'Paste text instead')),
+    ui.paste ? h('form', { class: 'stack', onsubmit(e) { e.preventDefault(); ui.paste = false; act({ action: 'cv_text', text: pasted.value, name: 'CV (pasted)' }); } }, pasted, h('button', { class: 'send small', type: 'submit' }, 'Save CV')) : null,
+    h('h3', {}, 'What you are looking for'),
+    ui.edit
+      ? h('form', { class: 'stack', onsubmit(e) { e.preventDefault(); const f = new FormData(e.target); ui.edit = false; act({ action: 'prefs', roles: f.get('roles'), places: f.get('places'), languages: f.get('languages'), avoid: f.get('avoid'), remote: f.get('remote') }); } },
+        field('roles', 'Roles', 'data scientist, machine learning engineer'), field('places', 'Places', 'Stockholm (leave empty for anywhere)'),
+        field('languages', 'Languages you work in', 'English, Swedish'), field('avoid', 'Rule out postings that mention', 'consulting, defence'),
+        h('label', { class: 'field' }, h('span', {}, 'Remote work'), remote),
+        h('div', { class: 'add' }, h('button', { class: 'send small', type: 'submit' }, 'Save'), h('button', { class: 'quiet', type: 'button', onclick: () => { ui.edit = false; render(); } }, 'Cancel')))
+      : h('ul', { class: 'rows' }, h('li', {}, h('span', {}, summary, prefs.notes.map(n => h('span', { class: 'tag' }, n, ' ', h('button', { class: 'x', type: 'button', 'aria-label': `Remove note: ${n}`, onclick: () => act({ action: 'note_remove', text: n }) }, '×')))),
+        h('span', { class: 'actions' }, h('button', { class: 'link', type: 'button', onclick: () => { ui.edit = true; render(); } }, 'Change')))),
+    h('h3', {}, 'Matches'),
+    matches.length
+      ? h('ul', { class: 'rows matches' }, matches.map(m => h('li', {},
+        h('span', {}, h('a', { href: m.url, target: '_blank', rel: 'noreferrer' }, m.title), ` · ${m.employer}${m.place ? ' · ' + m.place : ''}`,
+          h('small', {}, `${m.of ? `Meets ${m.met} of ${m.of} main requirements` : `Fit ${m.fit}`}${m.deadline ? ' · apply by ' + m.deadline : ''} · via ${m.source}`),
+          m.meets.length ? h('small', { class: 'fits' }, 'Shown by your CV: ' + m.meets.join('; ')) : null,
+          m.gaps.length ? h('small', { class: 'gaps' }, 'Not in your CV: ' + m.gaps.join('; ')) : null),
+        h('span', { class: 'actions' }, h('button', { class: 'link danger', type: 'button', onclick: () => act({ action: 'dismiss', id: m.id }) }, 'Dismiss')))))
+      : h('p', { class: 'empty' }, ready ? (lastLooked ? 'Nothing fits yet.' : 'Not looked yet. Ask “any jobs for me?” in chat to look now.') : 'Nothing to show until there is a CV and a role.'),
+    note('career'));
+}
+
 function jobsCard() {
   const { jobs, jobsError } = state.profile;
   return h('section', { class: 'card wide' },
@@ -361,7 +419,7 @@ function profileView() {
   if (!state.profile) return [head, h('div', { class: 'know' }, h('p', { class: 'empty' }, state.profileError || 'Loading…'))];
   return [head, h('div', { class: 'know' },
     memoryCard('user', 'About you', 'Kept in mind in every conversation, on every channel.'),
-    foodCard(), topicsCard(), jobsCard(),
+    careerCard(), foodCard(), topicsCard(), jobsCard(),
     state.profile.memory.notes.entries.length ? memoryCard('notes', 'Assistant’s own notes', 'What it has learned about doing things for you.') : null)];
 }
 

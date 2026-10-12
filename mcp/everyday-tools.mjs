@@ -12,10 +12,14 @@ import {join} from 'node:path';
 const scripts=fileURLToPath(new URL('../hermes/scripts/',import.meta.url));
 // Runs one job script and returns its JSON output. The scripts inherit this
 // process's environment, which is where the small model's key comes from.
-export const runScript=(name,args)=>new Promise((resolve,reject)=>execFile(process.env.DAYLIGHT_PYTHON||'python3',[scripts+name,...args],{timeout:120000,maxBuffer:4e6,windowsHide:true},(error,stdout,stderr)=>{
-  if(error)return reject(Error((stderr||error.message).trim().split('\n').at(-1).slice(0,300)));
-  try{resolve(JSON.parse(stdout));}catch{reject(Error('The script returned something unreadable.'));}
-}));
+// `input`, when given, is passed on standard input (a CV is too long for an argument).
+export const runScript=(name,args,input)=>new Promise((resolve,reject)=>{
+  const child=execFile(process.env.DAYLIGHT_PYTHON||'python3',[scripts+name,...args],{timeout:240000,maxBuffer:4e6,windowsHide:true},(error,stdout,stderr)=>{
+    if(error)return reject(Error((stderr||error.message).trim().split('\n').at(-1).slice(0,300)));
+    try{resolve(JSON.parse(stdout));}catch{reject(Error('The script returned something unreadable.'));}
+  });
+  if(input!==undefined)child.stdin.end(input);
+});
 
 // What the agent's own memory says about the user, one entry per item.
 export const readMemory=async()=>{try{return (await readFile(join(process.env.HERMES_HOME||join(homedir(),'.hermes'),'memories','USER.md'),'utf8')).split(/\r?\n§\r?\n/).map(e=>e.trim()).filter(Boolean);}catch{return [];}};

@@ -14,6 +14,7 @@ import {nearbyEvents,eventDetails} from '../lib/nearby-events.mjs';
 import {localNews} from '../lib/local-news.mjs';
 import {dateInStockholm,dayBounds,validDate} from '../lib/time.mjs';
 import {everydayTools,everydayHandlers} from './everyday-tools.mjs';
+import {jobTools,jobHandlers} from './job-tools.mjs';
 
 const clockText={type:'string',pattern:'^([01]\\d|2[0-4]):[0-5]\\d$',description:'24-hour HH:MM, Stockholm time'};
 const plain='Plain text for a chat app: no markdown, no bold, no headings, no tables, no bullet lists.';
@@ -36,7 +37,8 @@ export const tools=[
     maxWalkingMinutes:{type:'integer',minimum:0,maximum:180}}}},
   {name:'find_events',description:'Curated Visit Stockholm events with a session on the given date (and following days). Not a complete listing; ticket availability is unknown.',inputSchema:{type:'object',additionalProperties:false,required:['date'],properties:{date:{type:'string',description:'YYYY-MM-DD'},days:{type:'integer',minimum:1,maximum:14},near:{type:'string',description:'Landmark to search around; defaults to Stockholm Central'}}}},
   {name:'local_news',description:'Recent Stockholm regional headlines from SVT with links (titles and summaries, not full articles).',inputSchema:{type:'object',additionalProperties:false,properties:{}}},
-  ...everydayTools
+  ...everydayTools,
+  ...jobTools
 ];
 
 const services=()=>{
@@ -118,14 +120,14 @@ export async function findEvents({date,days=1,near='Stockholm Centralstation'},m
   return {date,days,source:'Visit Stockholm (curated)',events:r.events.map(e=>({title:e.title,venue:e.venue,sessions:e.occurrences?.length?e.occurrences:'no session times published',description:(e.description||'').slice(0,300),link:e.url})),
     howToAnswer:[plain,'At most three events. For each: the title, the venue and its session time on that date in one sentence, then the link on its own line. If an event has no published session, say so.','This is a curated list, not everything that is on; ticket availability is unknown.']};
 }
-const handlers={...everydayHandlers,plan_day:args=>planDay(args,services,persistPlan),find_events:findEvents,local_news:async()=>{const r=await localNews();return {source:'SVT Stockholm',items:r.cards.map(c=>({title:c.translatedTitle||c.title,original:c.title,published:c.publishedAt,link:c.url}))};}};
+const handlers={...everydayHandlers,...jobHandlers,plan_day:args=>planDay(args,services,persistPlan),find_events:findEvents,local_news:async()=>{const r=await localNews();return {source:'SVT Stockholm',items:r.cards.map(c=>({title:c.translatedTitle||c.title,original:c.title,published:c.publishedAt,link:c.url}))};}};
 
 // Minimal JSON-RPC 2.0 over newline-delimited stdio, as MCP's stdio transport specifies.
 export async function respond(message,run=handlers){
   const {id,method,params}=message;
   if(id===undefined)return null;
   const ok=result=>({jsonrpc:'2.0',id,result});
-  if(method==='initialize')return ok({protocolVersion:params?.protocolVersion||'2025-03-26',capabilities:{tools:{}},serverInfo:{name:'daylight',version:'0.2.0'},instructions:`Daylight plans days out in Stockholm (SEK, Europe/Stockholm), reads Lidl Sverige's weekly offers and keeps the user's food preferences and research topics. Today is ${dateInStockholm()}. Each result says how to answer from it.`});
+  if(method==='initialize')return ok({protocolVersion:params?.protocolVersion||'2025-03-26',capabilities:{tools:{}},serverInfo:{name:'daylight',version:'0.2.0'},instructions:`Daylight plans days out in Stockholm (SEK, Europe/Stockholm), reads Lidl Sverige's weekly offers, keeps the user's food preferences and research topics, and watches job postings against their CV. Today is ${dateInStockholm()}. Each result says how to answer from it.`});
   if(method==='ping')return ok({});
   if(method==='tools/list')return ok({tools});
   if(method==='tools/call'){

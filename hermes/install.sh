@@ -76,3 +76,6 @@ ensure_job daylight-research-feed "$at" research-tracker daylight_research.py \
   "Write today's research digest from the new papers in the script output, following the research-tracker skill."
 ensure_job daylight-grocery-deals "30 7 * * *" discount-tracker daylight_deals.py \
   "Write today's grocery offers message from the new offers in the script output, following the discount-tracker skill."
+# The job watch runs through the day; its script wakes the agent only when a new posting fits.
+ensure_job daylight-job-matches "15 */3 * * *" job-seeker daylight_jobs.py \
+  "Write the job matches message from the new matches in the script output, following the job-seeker skill."
