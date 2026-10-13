@@ -684,3 +684,19 @@ Not checked: the dial with the real jobs from a running assistant (locally there
 Worth knowing: the light follows Stockholm's sun, not the viewer's. Someone opening the page from another time zone during their day may find it in night mode; the dial states the Stockholm time, and the control overrides it.
 
 Tests: 122 Node, 23 Python, all passing.
+
+
+## 2026-10-13 — A living background
+
+The page's dot grid is now drawn on a canvas (`public/atmosphere.mjs`) and moves:
+- a slow wave of light travels outward from where the sun is in its day;
+- the pointer bends the grid like a lens: nearby dots are pushed away, grow and take the signal colour;
+- by night about one dot in twenty-five is a star with its own slow twinkle;
+- while the assistant is working, quick rings run outward across the field.
+It runs at about thirty frames a second, stops when the tab is hidden, and draws a single still frame for anyone whose system asks for reduced motion. Without it (or if the canvas cannot start) the old static grid remains.
+
+Tested (`tests/atmosphere.test.mjs`): a dot never leaves its grid point unless the pointer is near, never grows or brightens without limit, the same dots are stars every time, and the working rings reach a dot when they should.
+
+Seen in the browser on the local server: the lens around the pointer by day, and the star field by night; no console errors. **Not measured: how smoothly it runs.** The preview pane throttles animation to about one frame a second when it is not in front, so the motion itself, and its cost on a slow laptop or a large screen, have only been reasoned about (roughly three thousand small rectangles per frame). The working rings were not seen live, since the assistant was not running locally.
+
+Tests: 126 Node, 23 Python, all passing.

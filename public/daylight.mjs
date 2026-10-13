@@ -4,6 +4,7 @@
 import { mountJourneyMap } from './journey-map.mjs';
 import { createPlayer, record } from './voice.mjs';
 import { dial, dayStrip, mark, stockholm, sunTimes, sky, greeting } from './dial.mjs';
+import { createAtmosphere } from './atmosphere.mjs';
 
 const app = document.getElementById('app');
 const store = {
@@ -279,11 +280,15 @@ const activeJobs = () => (state.profile?.jobs || []).filter(job => !job.paused &
 let lightChoice = 'auto';
 try { lightChoice = ['auto', 'light', 'dark'].includes(localStorage.getItem('daylight-light')) ? localStorage.getItem('daylight-light') : 'auto'; } catch { /* storage unavailable: follow the sun */ }
 // The page is lit by the real sun over Stockholm: light by day, dark after dusk, warm at each end.
+const heaven = { theme: 'light', phase: 'day', sunX: 0.5 };   // what the background needs to know
+let atmosphere = null;
 function applySky() {
   const here = stockholm(), above = sky(here.minutes, sunTimes(here.dayOfYear, here.offset)), root = document.documentElement;
   root.dataset.theme = lightChoice === 'auto' ? above.theme : lightChoice;
   root.dataset.phase = lightChoice === 'auto' ? above.phase : lightChoice === 'dark' ? 'night' : 'day';
   root.style.setProperty('--sun-x', above.x + '%');
+  Object.assign(heaven, { theme: root.dataset.theme, phase: root.dataset.phase, sunX: above.x / 100 });
+  atmosphere?.redraw();
 }
 function cycleLight() {
   lightChoice = { auto: 'light', light: 'dark', dark: 'auto' }[lightChoice];
@@ -305,6 +310,14 @@ function refreshDay() {
 }
 applySky();
 setInterval(refreshDay, 60000);
+// The glow sits over the main column, so the background's sun is placed there too, not over the sidebar.
+try {
+  const field = document.getElementById('atmosphere');
+  if (field?.getContext) atmosphere = createAtmosphere(field, () => {
+    const main = app.querySelector('.main')?.getBoundingClientRect();
+    return { ...heaven, busy: state.sending, sunX: main ? (main.left + main.width * heaven.sunX) / innerWidth : heaven.sunX };
+  });
+} catch { /* the page works without its background */ }
 
 // ---- voice ----
 const player = createPlayer();
@@ -386,7 +399,7 @@ function chatView() {
     voice.note ? h('p', { class: 'voice-note', role: 'status' }, voice.note) : null,
     h('form', { class: 'composer', onsubmit(e) { e.preventDefault(); send(input.value); } }, micButton(), input, h('button', { class: 'send', type: 'submit', disabled: state.sending }, 'Send')),
   ];
-  queueMicrotask(() => { thread.scrollTop = thread.scrollHeight; if (!state.sending) input.focus(); });
+  queueMicrotask(() => { thread.scrollTop = state.turns.length ? thread.scrollHeight : 0; if (!state.sending) input.focus(); });
   return view;
 }
 function newConversation() {
