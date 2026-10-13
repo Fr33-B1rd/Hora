@@ -5,6 +5,7 @@ import { mountJourneyMap } from './journey-map.mjs';
 import { createPlayer, record } from './voice.mjs';
 import { dial, dayStrip, mark, stockholm, sunTimes, sky, greeting } from './dial.mjs';
 import { createAtmosphere } from './atmosphere.mjs';
+import { mascot } from './mascot.mjs';
 
 const app = document.getElementById('app');
 const store = {
@@ -245,7 +246,7 @@ async function send(text, options = {}) {
   render();
   const thread = app.querySelector('.thread');
   const status = h('span', { class: 'working' }, h('i'), h('i'), h('i'), h('span', {}, state.working));
-  const pending = h('div', { class: 'turn assistant fresh', 'aria-live': 'polite' }, status);
+  const pending = h('div', { class: 'turn assistant fresh thinking', 'aria-live': 'polite' }, mascot({ mood: 'thinking', size: 54, turn: stockholm().minutes / 1440 * 360, label: 'Thinking' }), status);
   thread.append(pending); thread.scrollTop = thread.scrollHeight;
   const started = performance.now(), sentAt = Date.now(), steps = [];
   let reply = '', lastTool = '';
@@ -256,7 +257,7 @@ async function send(text, options = {}) {
       onStep(label, tool) { lastTool = tool; if (steps.at(-1) !== label) steps.push(label); if (!reply) status.lastChild.textContent = label; },
       onText(chunk) {
         reply += chunk;
-        pending.replaceChildren(...richText(reply.trimStart()));
+        pending.classList.remove('thinking'); pending.replaceChildren(...richText(reply.trimStart()));
         if (thread.scrollHeight - thread.scrollTop - thread.clientHeight < 160) thread.scrollTop = thread.scrollHeight;
       },
     });
@@ -385,7 +386,7 @@ function chatView() {
   });
   const thread = h('div', { class: 'thread' },
     state.turns.length ? state.turns.map(turnElement) : h('div', { class: 'welcome' }, h('div', { class: 'welcome-words' },
-      h('p', { class: 'kicker' }, greeting(stockholm().minutes)),
+      h('div', { class: 'hello' }, mascot({ size: 118, turn: stockholm().minutes / 1440 * 360, label: 'Daylight, your assistant' }), h('p', { class: 'kicker' }, greeting(stockholm().minutes))),
       h('h2', {}, 'It keeps working ', h('em', {}, 'while you’re away.')),
       h('p', {}, 'I remember what you tell me, watch job postings, grocery offers and research topics while you are away, keep your calendar in view, and can plan a day out in Stockholm.'),
       h('div', { class: 'ideas' }, ideas.map(([kind, text]) => h('button', { type: 'button', onclick: () => send(text) }, h('small', {}, kind), text)))),

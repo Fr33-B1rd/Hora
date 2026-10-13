@@ -709,3 +709,14 @@ At the user's request the chat screen no longer has its heading (“Chat”), it
 Checked in the browser on the local server: the corner at rest, the lifted state with its label, a frame from the middle of the turn, and a real click (two messages before; none after, the opening screen shown, the turning sheet removed, the stored conversation empty; no console errors). The motion itself was seen only as stills, because the preview pane throttles animation; its smoothness, and the corner on a phone-width screen, are unchecked.
 
 Tests: 126 Node, 23 Python, all passing.
+
+
+## 2026-10-13 — A character for the assistant
+
+A small day-spirit drawn as vector shapes in `public/mascot.mjs`: dark hair in two buns tied with signal-coloured bands, a hair clip and a brooch in the same diamond that marks the assistant's runs on the dial, large eyes with a lime lower iris, a pale poncho, and behind her head a dotted ring with the sun at the real time, the day dial in miniature. She keeps her own colours on any background; on a dark page her hair gets a light rim. Four moods change eyes and mouth: idle (blinks, bobs, her stray hair sways), thinking (looks up, the ring turns, three dots rise), speaking, happy. Pointing at her on the opening screen makes her smile and wave.
+
+Where she appears: beside the greeting on the opening screen, and in the bubble while the assistant is working. Standalone pictures are written to `public/mascot.svg` and `public/mascot-dark.svg`, and the README shows the first.
+
+Seen in the browser on the local server: the standalone picture on light and on dark, the opening screen with her beside the greeting, and the thinking, speaking and happy moods placed by hand. The first dark version was wrong (her colours inverted with the theme and her face disappeared) and was redrawn with fixed colours. Her animations were seen only as stills, since the preview throttles animation; the speaking mood is drawn but not yet used by the page.
+
+Tests: 126 Node, 23 Python, all passing.

@@ -184,6 +184,42 @@ a:hover { background: var(--signal); color: var(--signal-ink); text-decoration-c
 .welcome h2 { font-size: clamp(38px, 5.2vw, 76px); font-weight: 500; letter-spacing: -0.05em; line-height: 1.04; margin: 0 0 22px; }
 .welcome h2 em { display: inline-block; font-style: normal; line-height: 0.98; background: var(--signal); color: var(--signal-ink); padding: 0.02em 0.14em 0.06em; margin-top: 0.06em; }
 
+/* The character */
+:root { --mascot-rim: transparent; }
+:root[data-theme="dark"] { --mascot-rim: var(--ink); }
+.mascot { flex: none; height: auto; overflow: visible; }
+.mascot .m-sun { transform-box: view-box; transform-origin: 100px 88px; transform: rotate(var(--turn)); }
+.mascot .m-float { animation: bob 4.2s ease-in-out infinite; }
+.mascot .m-shadow { transform-box: fill-box; transform-origin: center; animation: shade 4.2s ease-in-out infinite; }
+.mascot .m-eye-open { transform-box: fill-box; transform-origin: center; animation: blink 5.2s infinite; }
+.mascot .m-ahoge { transform-box: fill-box; transform-origin: 20% 100%; animation: sway 3.4s ease-in-out infinite; }
+.mascot .m-wave { transform-box: fill-box; transform-origin: 10% 10%; }
+.mood-idle .m-eye-happy, .mood-idle .m-mouth-open, .mood-idle .m-mouth-flat, .mood-idle .m-dots,
+.mood-happy .m-eye-open, .mood-happy .m-mouth-open, .mood-happy .m-mouth-flat, .mood-happy .m-dots,
+.mood-speaking .m-eye-happy, .mood-speaking .m-mouth-smile, .mood-speaking .m-mouth-flat, .mood-speaking .m-dots,
+.mood-thinking .m-eye-happy, .mood-thinking .m-mouth-smile, .mood-thinking .m-mouth-open { display: none; }
+/* Point at her and she smiles and waves. */
+.hello:hover .mood-idle .m-eye-open { display: none; }
+.hello:hover .mood-idle .m-eye-happy { display: inline; }
+.hello:hover .m-wave { animation: wave 0.7s ease-in-out 3; }
+/* Thinking: she looks up, the ring turns, and three dots rise beside her. */
+.mood-thinking .m-ring { transform-box: view-box; transform-origin: 100px 88px; animation: orbit 5s linear infinite; }
+.mood-thinking .m-glint { transform: translate(1.5px, -3px); }
+.mood-thinking .m-dots circle { animation: think 1.3s ease-in-out infinite; }
+.mood-thinking .m-dots circle:nth-child(2) { animation-delay: 0.18s; }
+.mood-thinking .m-dots circle:nth-child(3) { animation-delay: 0.36s; }
+.mood-speaking .m-mouth-open { transform-box: fill-box; transform-origin: center; animation: talk 0.34s ease-in-out infinite alternate; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes shade { 0%, 100% { transform: scaleX(1); opacity: 0.14; } 50% { transform: scaleX(0.84); opacity: 0.08; } }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95.5% { transform: scaleY(0.08); } }
+@keyframes sway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(7deg); } }
+@keyframes wave { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-58deg); } }
+@keyframes think { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+@keyframes talk { from { transform: scaleY(0.35); } to { transform: scaleY(1); } }
+.hello { display: flex; align-items: flex-end; gap: 14px; margin: 0 0 14px; }
+.hello .kicker { margin: 0 0 22px; }
+.turn.thinking { display: flex; align-items: center; gap: 12px; padding: 8px 16px 8px 10px; }
+
 /* The day dial */
 .day { position: relative; display: grid; justify-items: center; gap: 6px; }
 .dial { width: min(100%, 460px, 58vh); height: auto; overflow: visible; fill: none; }

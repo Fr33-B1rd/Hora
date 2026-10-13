@@ -1,3 +1,5 @@
+<img src="public/mascot.svg" alt="Daylight’s character: a small day-spirit with a sun ring behind her head" width="150" align="right">
+
 # Daylight
 
 A personal assistant that works for you between conversations, and shows you what it knows.
