@@ -665,3 +665,22 @@ Checked in the browser on the local server: the welcome screen, a conversation w
 Not checked, because the assistant was not running locally: the working indicator and message animation during a real reply, the plan card with its map, the microphone button's states, and "What I know" at phone width. Contrast was judged by eye, not measured.
 
 The two typefaces come from Google Fonts, so opening the page now makes a request to Google; the data page says so, and the page falls back to system fonts without them.
+
+
+## 2026-10-13 — The day dial, and a page lit by the real sun
+
+The page now has an idea of its own, taken from the product's name and the brief (“always on”): it shows the assistant's day.
+- **The dial** on the opening screen is a 24-hour face, midnight at the bottom and noon at the top. It draws today's daylight over Stockholm as an arc, the sun where it is now, and a mark at every time a scheduled job runs (filled if still to come today, hollow if done). On opening, the face draws itself and the sun sweeps from midnight to the present.
+- **The strip** under every heading is the same day flattened: daylight, the runs, and a beacon at now.
+- **The mark** beside the name is the same face in miniature, with the sun at the real time.
+- **The page's light follows the sun**: light between sunrise and sunset, dark otherwise, with a warm glow at dawn and dusk and a blue one at night, placed where the sun is in its day. A control in the sidebar cycles between following the sun, day and night; the choice is kept in the browser.
+
+`public/dial.mjs` computes Stockholm's clock, sunrise and sunset (the standard short formula), the phase of the day and each job's run times from its schedule. Tested (`tests/dial.test.mjs`): midsummer and midwinter sunrise and sunset within 8 minutes of the almanac values I had (03:31/22:08 and 08:43/14:48), mid-October day length about ten and a half hours, the light switching just after sunset and just before sunrise, and the run times for the three schedules in use. My remembered almanac figure for mid-October sunrise disagreed with the formula by 9 minutes; the formula agrees with the two solstice figures, so I trusted it and tested day length there instead.
+
+Checked in the browser on the local server: the opening screen by day (14:20) and by night (21:40) with three sample jobs placed on the dial, the real current state (06:15 in Stockholm: dark, pre-dawn), the “What I know” page with the strip, and the light control. Two faults found and fixed on the way: job marks drawn as rotated squares were thrown off position by the styles that animate them (now drawn as outlines), and the highlighted line of the headline covered the line above it.
+
+Not checked: the dial with the real jobs from a running assistant (locally there were none, so sample jobs were placed by hand), the once-a-minute update over a long time, behaviour at the moment of sunrise or sunset, phone width for the new opening screen, and how the entry animation performs on a slow device.
+
+Worth knowing: the light follows Stockholm's sun, not the viewer's. Someone opening the page from another time zone during their day may find it in night mode; the dial states the Stockholm time, and the control overrides it.
+
+Tests: 122 Node, 23 Python, all passing.

@@ -3,6 +3,7 @@
 
 import { mountJourneyMap } from './journey-map.mjs';
 import { createPlayer, record } from './voice.mjs';
+import { dial, dayStrip, mark, stockholm, sunTimes, sky, greeting } from './dial.mjs';
 
 const app = document.getElementById('app');
 const store = {
@@ -273,6 +274,38 @@ async function send(text, options = {}) {
   if (steps.length) loadProfile(true);  // the assistant may have changed what it remembers
 }
 
+// ---- the day: the dial, the strip, and the page's own light ----
+const activeJobs = () => (state.profile?.jobs || []).filter(job => !job.paused && job.expr);
+let lightChoice = 'auto';
+try { lightChoice = ['auto', 'light', 'dark'].includes(localStorage.getItem('daylight-light')) ? localStorage.getItem('daylight-light') : 'auto'; } catch { /* storage unavailable: follow the sun */ }
+// The page is lit by the real sun over Stockholm: light by day, dark after dusk, warm at each end.
+function applySky() {
+  const here = stockholm(), above = sky(here.minutes, sunTimes(here.dayOfYear, here.offset)), root = document.documentElement;
+  root.dataset.theme = lightChoice === 'auto' ? above.theme : lightChoice;
+  root.dataset.phase = lightChoice === 'auto' ? above.phase : lightChoice === 'dark' ? 'night' : 'day';
+  root.style.setProperty('--sun-x', above.x + '%');
+}
+function cycleLight() {
+  lightChoice = { auto: 'light', light: 'dark', dark: 'auto' }[lightChoice];
+  try { localStorage.setItem('daylight-light', lightChoice); } catch { /* not remembered, still applied */ }
+  applySky(); render();
+}
+function dayPanel(settled = false) {
+  const jobs = activeJobs(), face = dial({ jobs });
+  if (settled) face.classList.add('settled');
+  return h('div', { class: 'day' }, face,
+    jobs.length ? h('ul', { class: 'legend', 'aria-label': 'What runs for you today' }, jobs.map(job => h('li', {}, h('b', {}, job.title), ' ', job.schedule.replace(/^Every day at /, '').toLowerCase()))) : null);
+}
+// Once a minute, and when the jobs become known, the sun and the marks are moved without redrawing the page.
+function refreshDay() {
+  applySky();
+  app.querySelector('.day')?.replaceWith(dayPanel(true));
+  app.querySelector('.daystrip')?.replaceWith(dayStrip({ jobs: activeJobs() }));
+  app.querySelector('.brand .mark')?.replaceWith(mark());
+}
+applySky();
+setInterval(refreshDay, 60000);
+
 // ---- voice ----
 const player = createPlayer();
 const voice = { ready: false, speakReady: false, phase: 'idle', level: 0, acknowledgements: [], clips: new Map(), recording: null, note: '' };
@@ -338,14 +371,17 @@ function chatView() {
     oninput() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px'; },
   });
   const thread = h('div', { class: 'thread' },
-    state.turns.length ? state.turns.map(turnElement) : h('div', { class: 'welcome' },
-      h('h2', {}, 'What can I do for you?'),
+    state.turns.length ? state.turns.map(turnElement) : h('div', { class: 'welcome' }, h('div', { class: 'welcome-words' },
+      h('p', { class: 'kicker' }, greeting(stockholm().minutes)),
+      h('h2', {}, 'It keeps working ', h('em', {}, 'while you’re away.')),
       h('p', {}, 'I remember what you tell me, watch job postings, grocery offers and research topics while you are away, keep your calendar in view, and can plan a day out in Stockholm.'),
-      h('div', { class: 'ideas' }, ideas.map(([kind, text]) => h('button', { type: 'button', onclick: () => send(text) }, h('small', {}, kind), text)))));
+      h('div', { class: 'ideas' }, ideas.map(([kind, text]) => h('button', { type: 'button', onclick: () => send(text) }, h('small', {}, kind), text)))),
+      dayPanel()));
   const view = [
     h('header', { class: 'head' },
       h('div', {}, h('h1', {}, 'Chat'), h('p', {}, 'The same assistant, memory and skills as your chat app.')),
       h('button', { class: 'quiet', type: 'button', disabled: state.sending || !state.turns.length, onclick: newConversation }, 'New conversation')),
+    dayStrip({ jobs: activeJobs() }),
     thread,
     voice.note ? h('p', { class: 'voice-note', role: 'status' }, voice.note) : null,
     h('form', { class: 'composer', onsubmit(e) { e.preventDefault(); send(input.value); } }, micButton(), input, h('button', { class: 'send', type: 'submit', disabled: state.sending }, 'Send')),
@@ -361,7 +397,7 @@ function newConversation() {
 
 // ---- what I know ----
 async function loadProfile(quiet = false) {
-  try { state.profile = await api('/api/profile'); state.profileError = ''; }
+  try { state.profile = await api('/api/profile'); state.profileError = ''; refreshDay(); }
   catch (error) { if (!quiet) state.profileError = error.message; }
   if (state.view === 'profile' || !quiet) render(); else renderStatus();
 }
@@ -501,8 +537,8 @@ function profileView() {
   const head = h('header', { class: 'head' },
     h('div', {}, h('h1', {}, 'What I know'), h('p', {}, 'Everything the assistant remembers and does for you. Correct or remove anything.')),
     h('button', { class: 'quiet', type: 'button', onclick: () => loadProfile() }, 'Refresh'));
-  if (!state.profile) return [head, h('div', { class: 'know' }, h('p', { class: 'empty' }, state.profileError || 'Loading…'))];
-  return [head, h('div', { class: 'know' },
+  if (!state.profile) return [head, dayStrip({ jobs: activeJobs() }), h('div', { class: 'know' }, h('p', { class: 'empty' }, state.profileError || 'Loading…'))];
+  return [head, dayStrip({ jobs: activeJobs() }), h('div', { class: 'know' },
     memoryCard('user', 'About you', 'Kept in mind in every conversation, on every channel.'),
     calendarCard(), careerCard(), foodCard(), topicsCard(), jobsCard(),
     state.profile.memory.notes.entries.length ? memoryCard('notes', 'Assistant’s own notes', 'What it has learned about doing things for you.') : null)];
@@ -537,9 +573,10 @@ function render() {
   if (enter) entering = false;
   app.replaceChildren(h('div', { class: 'shell' + (state.sending ? ' busy' : '') },
     h('aside', { class: 'side' },
-      h('div', { class: 'brand' }, sun(), 'Daylight'),
+      h('div', { class: 'brand' }, mark(), 'Daylight'),
       h('nav', { class: 'nav', 'aria-label': 'Sections' }, tab('chat', 'Chat'), tab('profile', 'What I know')),
       statusBox(),
+      h('button', { class: 'theme', type: 'button', title: 'The page is lit by the real sun over Stockholm unless you choose otherwise', onclick: cycleLight }, 'Light: ', h('b', {}, { auto: 'the sun', light: 'day', dark: 'night' }[lightChoice])),
       h('a', { class: 'legacy', href: '/privacy.html' }, 'Data and services')),
     h('main', { class: 'main' + (enter ? ' enter' : '') }, state.view === 'profile' ? profileView() : chatView())));
   shownTurns = state.turns.length;
