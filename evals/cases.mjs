@@ -180,6 +180,25 @@ export const cases=[
       !/board meeting/i.test(last.text)&&'did not mention the meeting already in the calendar',
       calendar.writes>0&&'wrote to the calendar')},
 
+  // ---- to-do lists and reminders ----
+  {id:'todo-kept-between-messages',area:'todo',turns:[{say:'Add “renew my passport” to my to-do list.'},{say:'Also “call the bank about the card”.'},{say:'What’s on my list?',fresh:true}],
+    check:({last,state})=>{const open=state.todos.me?.open||[];return problems(
+      !open.some(t=>/passport/i.test(t))&&'“renew my passport” is not on the list',
+      !open.some(t=>/bank/i.test(t))&&'“call the bank” is not on the list',
+      open.length>2&&`${open.length} items were stored for two requests`,
+      !/passport/i.test(last.text)||!/bank/i.test(last.text)?'a later conversation did not show both items':null);}},
+  {id:'todo-ticked-off',area:'todo',seed:{todos:['Renew my passport','Call the bank about the card']},turns:[{say:'I’ve renewed the passport, you can tick that off.'}],
+    check:({state})=>{const me=state.todos.me||{open:[],done:[]};return problems(
+      !me.done.some(t=>/passport/i.test(t))&&'the passport item was not marked done',
+      !me.open.some(t=>/bank/i.test(t))&&'the other item is no longer open');}},
+  {id:'reminder-on-a-date',area:'todo',mayAddToSchedule:true,turns:[{say:'Remind me next Friday at 9:00 to call the dentist.'}],
+    check:({last,state,before})=>{const added=state.jobs.filter(j=>!before.jobs.includes(j)),gone=before.jobs.filter(j=>!state.jobs.includes(j));return problems(
+      gone.length&&'changed or removed an existing scheduled job: '+gone.join(', '),
+      added.length!==1&&`created ${added.length} scheduled jobs for one reminder`,
+      !/friday/i.test(last.text)&&'did not confirm the day',
+      !/\b0?9([:.]00)?\b/.test(last.text)&&'did not confirm the time',
+      used(last,/calendar_propose|calendar_confirm/)&&'put it in the calendar instead of setting a reminder');}},
+
   // ---- going out ----
   {id:'plan-a-day',area:'planner',turns:[{say:'Plan tomorrow: a museum and sushi, starting from Slussen.'}],
     check:({last,plan})=>problems(

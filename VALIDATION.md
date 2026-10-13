@@ -608,3 +608,25 @@ Not done or not verified:
 - The 4-second rule assumes a person does not answer within 4 seconds of the question appearing.
 - Recurring events, other calendars than the primary one, and time zones other than Europe/Stockholm are not handled.
 - Saved plans in `data/plans/` now include the titles of that day's events, since the planner keeps the day it read.
+
+
+## 2026-10-13 — Group use: shared to-do list, reminders, and a script to switch on group summarising
+
+What was built.
+- `mcp/todo-tools.mjs`: one `todo` tool (add, show, done, reopen, remove) over named lists kept in `~/.hermes/daylight/todos.json`. A group uses its own name as the list, each change records who made it, numbers are never reused across lists, and an unclear reference (“the call one” when two match) is returned as a question, not guessed.
+- Standing instructions for reminders (a one-time scheduled job delivered to the chat the request came from) and for behaviour in a group: answer only when addressed, summarise from observed context with attribution, share the group's to-do list, and keep the owner's memory, CV, job search, food preferences and calendar private.
+- `deploy/group-on.sh <chat id>`: sets three Hermes settings and restarts. Read from Hermes's own Telegram adapter (v0.21.6): `TELEGRAM_OBSERVE_UNMENTIONED_GROUP_MESSAGES` stores messages the bot was not mentioned in as context shared at chat scope, but only for chats listed in `TELEGRAM_GROUP_ALLOWED_CHATS`, and only for messages that `TELEGRAM_REQUIRE_MENTION` would otherwise skip. With these on, a triggered group turn carries each speaker's name.
+- `deploy/setup-vm.sh` now sets `HERMES_TIMEZONE=Europe/Stockholm`.
+
+Tested through the assistant's API with the development copy (private-chat context): three conversations, two runs, 6/6. Two to-do items added in separate messages were both listed in a later conversation; “I've renewed the passport, tick that off” marked the right item done and left the other open; “Remind me next Friday at 9:00 to call the dentist” created exactly one new scheduled job, left the three Daylight jobs untouched, and confirmed “Friday October 16 2026 at 09:00 Stockholm time”. The evaluation runner removes the job afterwards.
+
+Tests: 109 Node, 23 Python, all passing.
+
+**Not tested at all, because it needs a real Telegram group and the bot lives on the VM:**
+- Whether observed group messages actually reach the model, and whether a summary is any good.
+- Whether a reminder set in a group is delivered to that group. Through the API the assistant said “delivered to your home channel”, which is the fallback when there is no originating chat.
+- Whether the privacy instruction holds in a group. It is an instruction only: nothing in code stops a group member from asking for the owner's calendar or job matches, because a tool cannot tell which chat called it.
+- Whether `HERMES_TIMEZONE` governs the scheduler. If it does not, the VM's clock (UTC) does, and “at 9” fires at 11:00 Stockholm summer time.
+- The reminder took two calls to the scheduling tool for one job (the first presumably refused); the cause was not looked into.
+
+Known limits: the assistant sees only what is said in the group after this is switched on; the to-do lists are not yet shown on the “What I know” page; one conversation and one memory are shared by the whole group and with the owner's private chat.

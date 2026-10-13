@@ -7,7 +7,7 @@ import {instant,localParts,dateInStockholm,nextDate} from '../lib/time.mjs';
 
 const SEPARATOR='\n§\n';
 // The schedule is included: a conversation must not change it, and if one does it is put back.
-export const stateFiles=['memories/USER.md','memories/MEMORY.md','daylight/deals.json','daylight/research.json','daylight/jobs.json','cron/jobs.json'];
+export const stateFiles=['memories/USER.md','memories/MEMORY.md','daylight/deals.json','daylight/research.json','daylight/jobs.json','daylight/todos.json','cron/jobs.json'];
 const exists=async file=>{try{await access(file);return true;}catch{return false;}};
 const readText=async file=>{try{return await readFile(file,'utf8');}catch(error){if(error.code==='ENOENT')return '';throw error;}};
 const readJson=async(file,fallback)=>{const text=await readText(file);return text.trim()?JSON.parse(text):fallback;};
@@ -56,6 +56,7 @@ export async function seedState(home,base,seed={}){
   const pref=p=>({label:p.label,terms:p.terms||[p.label],since:'2026-01-01'});
   await write(join(home,'daylight/deals.json'),JSON.stringify({seen:{},...base.deals,likes:(seed.likes||[]).map(pref),dislikes:(seed.dislikes||[]).map(pref)},null,1));
   await write(join(home,'daylight/research.json'),JSON.stringify({seen:{},...base.research,topics:(seed.topics||[]).map(t=>({id:t.id,name:t.name,query:t.query||'all:'+t.name.split(' ').join(' AND all:'),categories:[],notes:t.notes||[],added:'2026-01-01',lastChecked:new Date().toISOString().slice(0,10)}))},null,1));
+  await write(join(home,'daylight/todos.json'),JSON.stringify({next:(seed.todos||[]).length,lists:{me:(seed.todos||[]).map((text,i)=>({id:i+1,text,by:null,added:'2026-01-01',due:null,done:null}))}},null,1));
   // The job search: a CV, wishes and matches already found, so no case has to search the live job boards.
   const career=seed.career||{},day=new Date().toISOString().slice(0,10);
   await write(join(home,'daylight/jobs.json'),JSON.stringify({cv:career.cv?{name:'cv.pdf',text:career.cv,added:day}:null,
@@ -64,9 +65,9 @@ export async function seedState(home,base,seed={}){
     seen:Object.fromEntries((career.matches||[]).map(m=>[m.id,day])),sent:{},remote:{date:day},lastRun:new Date().toISOString(),errors:[]},null,1));
 }
 export async function readState(home){
-  const [user,notes,deals,research,cron,career]=await Promise.all([readText(join(home,'memories/USER.md')),readText(join(home,'memories/MEMORY.md')),readJson(join(home,'daylight/deals.json'),{}),readJson(join(home,'daylight/research.json'),{}),readJson(join(home,'cron/jobs.json'),{}),readJson(join(home,'daylight/jobs.json'),{})]);
+  const [user,notes,deals,research,cron,career,todos]=await Promise.all([readText(join(home,'memories/USER.md')),readText(join(home,'memories/MEMORY.md')),readJson(join(home,'daylight/deals.json'),{}),readJson(join(home,'daylight/research.json'),{}),readJson(join(home,'cron/jobs.json'),{}),readJson(join(home,'daylight/jobs.json'),{}),readJson(join(home,'daylight/todos.json'),{})]);
   const jobs=(Array.isArray(cron)?cron:cron.jobs||[]).map(j=>`${j.name||j.id} [${j.enabled===false?'paused':'on'} ${j.schedule?.expr||j.schedule_display||''}]`).sort();
-  return {career:{cv:career.cv||null,prefs:{roles:[],places:[],languages:[],avoid:[],notes:[],remote:'yes',...career.prefs},matches:career.matches||[]},jobs,memory:(user+'\n'+notes).trim(),likes:deals.likes||[],dislikes:deals.dislikes||[],topics:research.topics||[],offers:(deals.cache?.deals||[]).map(d=>d.title),deals,research};
+  return {todos:Object.fromEntries(Object.entries(todos.lists||{}).map(([name,items])=>[name,{open:items.filter(i=>!i.done).map(i=>i.text),done:items.filter(i=>i.done).map(i=>i.text)}])),career:{cv:career.cv||null,prefs:{roles:[],places:[],languages:[],avoid:[],notes:[],remote:'yes',...career.prefs},matches:career.matches||[]},jobs,memory:(user+'\n'+notes).trim(),likes:deals.likes||[],dislikes:deals.dislikes||[],topics:research.topics||[],offers:(deals.cache?.deals||[]).map(d=>d.title),deals,research};
 }
 
 // ---- the stand-in calendar ----

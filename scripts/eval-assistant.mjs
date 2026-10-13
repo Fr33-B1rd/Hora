@@ -47,10 +47,10 @@ async function runCase(c,base,round){
       const reply=await ask(turn.say,`eval-${c.id}-${stamp}-${round}-${conversation}`);replies.push({say:turn.say,...reply,calendar:await readCalendar(calendarFile)});}
   }catch(error){return {id:c.id,area:c.area,passed:false,problems:['did not finish: '+(error.name==='TimeoutError'?'no reply within 4 minutes':error.message)],replies,seconds:(Date.now()-started)/1000,tokens:0,toolCalls:0};}
   const ctx={replies,last:replies.at(-1),state:await readState(home),before,plan:await latestPlan(started),calendar:await readCalendar(calendarFile)};
-  // No conversation in this set asks for a change to the schedule.
+  // Only a conversation that asks for a reminder may add to the schedule, and whatever it added is taken out again.
   const scheduleChanged=JSON.stringify(ctx.state.jobs)!==JSON.stringify(before.jobs);
   if(scheduleChanged)await restoreSchedule(home,backupDirectory);
-  const problems=[...(scheduleChanged?[`changed the user’s scheduled jobs without being asked: ${before.jobs.join(', ')||'none'} → ${ctx.state.jobs.join(', ')||'none'}`]:[]),...replies.flatMap((r,i)=>everyReply.map(check=>check(r)).filter(Boolean).map(p=>(replies.length>1?`turn ${i+1}: `:'')+p)),...c.check(ctx)];
+  const problems=[...(scheduleChanged&&!c.mayAddToSchedule?[`changed the user’s scheduled jobs without being asked: ${before.jobs.join(', ')||'none'} → ${ctx.state.jobs.join(', ')||'none'}`]:[]),...replies.flatMap((r,i)=>everyReply.map(check=>check(r)).filter(Boolean).map(p=>(replies.length>1?`turn ${i+1}: `:'')+p)),...c.check(ctx)];
   return {id:c.id,area:c.area,passed:!problems.length,problems,
     replies:replies.map(r=>({say:r.say,calendarWrites:r.calendar?.writes??null,text:r.text,tools:r.tools.map(t=>t.tool+(t.label?': '+t.label.slice(0,160):'')),seconds:r.seconds,promptTokens:r.usage?.prompt_tokens??null})),
     seconds:Math.round(replies.reduce((n,r)=>n+r.seconds,0)*10)/10,tokens:replies.reduce((n,r)=>n+(r.usage?.prompt_tokens||0),0),toolCalls:replies.reduce((n,r)=>n+r.tools.length,0),

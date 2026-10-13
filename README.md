@@ -11,6 +11,7 @@ What it does today:
 - **Grocery offers.** Every morning it reads the week's offers at Lidl Sverige and sends the ones you would want. Say once that you avoid pork and it stops showing pork.
 - **Day planner.** Ask for a day out in Stockholm and it returns a plan checked against real opening hours and real public-transport times, shown on a map. It can add the plan to your Google Calendar, but only after you have seen the exact changes and confirmed them.
 - **Calendar.** Ask what you have on, or ask it to add an event. It tells you exactly what it would add, names anything it overlaps, and writes only after you answer yes in a separate message. When you plan a day, it tells you what is already there first.
+- **To-do lists and reminders.** “Add renew passport to my list”, “tick that off”, “remind me on Friday at 9”. In a Telegram group it keeps one shared list for everyone and can summarise what was discussed since it joined.
 - **What I know.** A page listing everything it has remembered about you, your CV and job search, the topics and foods it tracks, and the jobs it runs for you. Anything can be removed or paused there.
 
 ## How it is put together
@@ -99,7 +100,7 @@ python3 -m unittest discover -s hermes/tests
 
 Neither suite uses the network or real credentials.
 
-The evaluation set is different: 31 real conversations with the running assistant (job search, calendar, groceries, research, planning, memory, manner), each judged on what it did and on what its reply may and may not say.
+The evaluation set is different: 34 real conversations with the running assistant (job search, calendar, to-do lists, groceries, research, planning, memory, manner), each judged on what it did and on what its reply may and may not say.
 
 ```bash
 node --env-file=.env scripts/eval-assistant.mjs --label mychange --repeat 2

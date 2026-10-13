@@ -93,6 +93,9 @@ lines = [l for l in open(path, encoding="utf-8").read().splitlines() if not l.st
 lines += ["API_SERVER_ENABLED=true", "API_SERVER_KEY=" + key]
 open(path, "w", encoding="utf-8").write("\n".join(lines) + "\n")
 PY
+# Daylight speaks in Stockholm time everywhere (plans, calendar, "remind me at 9"), so the
+# assistant's own clock must agree, or digests and reminders arrive hours off on a UTC server.
+bash "$hermes" config set HERMES_TIMEZONE Europe/Stockholm | tail -n 1
 bash "$hermes" config set model.provider nebius | tail -n 1
 bash "$hermes" config set model.default "$(value NEBIUS_MODEL)" | tail -n 1
 HERMES_BIN="$hermes" bash "$project/hermes/install.sh" --deliver local
