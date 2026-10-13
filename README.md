@@ -1,4 +1,4 @@
-<img src="public/mascot.svg" alt="Daylight’s character: a small day-spirit with a sun ring behind her head" width="150" align="right">
+<img src="public/character.webp" alt="Daylight’s guardian: a small winged girl with the eye of the sun above her head" width="190" align="right">
 
 # Daylight
 

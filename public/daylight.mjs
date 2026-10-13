@@ -5,7 +5,6 @@ import { mountJourneyMap } from './journey-map.mjs';
 import { createPlayer, record } from './voice.mjs';
 import { dial, dayStrip, mark, stockholm, sunTimes, sky, greeting } from './dial.mjs';
 import { createAtmosphere } from './atmosphere.mjs';
-import { mascot } from './mascot.mjs';
 
 const app = document.getElementById('app');
 const store = {
@@ -246,7 +245,7 @@ async function send(text, options = {}) {
   render();
   const thread = app.querySelector('.thread');
   const status = h('span', { class: 'working' }, h('i'), h('i'), h('i'), h('span', {}, state.working));
-  const pending = h('div', { class: 'turn assistant fresh thinking', 'aria-live': 'polite' }, mascot({ mood: 'thinking', size: 54, turn: stockholm().minutes / 1440 * 360, label: 'Thinking' }), status);
+  const pending = h('div', { class: 'turn assistant fresh thinking', 'aria-live': 'polite' }, h('span', { class: 'avatar' }, h('img', { src: '/character-head.webp', alt: '', width: '46', height: '46' })), status);
   thread.append(pending); thread.scrollTop = thread.scrollHeight;
   const started = performance.now(), sentAt = Date.now(), steps = [];
   let reply = '', lastTool = '';
@@ -297,9 +296,13 @@ function cycleLight() {
   applySky(); render();
 }
 function dayPanel(settled = false) {
-  const jobs = activeJobs(), face = dial({ jobs });
-  if (settled) face.classList.add('settled');
-  return h('div', { class: 'day' }, face,
+  const jobs = activeJobs(), face = dial({ jobs }), here = stockholm(), sun = sunTimes(here.dayOfYear, here.offset);
+  face.classList.add('around'); if (settled) face.classList.add('settled');
+  const clock = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  return h('div', { class: 'day' },
+    // She stands in front of the dial: the ring of the day is her halo.
+    h('div', { class: 'stage' + (settled ? ' settled' : '') }, face, h('img', { class: 'character', src: '/character.webp', alt: 'Daylight’s guardian: a small winged girl with the eye of the sun above her head, arms open in welcome', width: '817', height: '880', draggable: 'false' })),
+    h('p', { class: 'day-caption' }, h('b', {}, clock(here.minutes)), `${here.label} · Stockholm`, sun.rise != null ? h('br') : null, sun.rise != null ? `sunrise ${clock(sun.rise)} · sunset ${clock(sun.set)}` : null),
     jobs.length ? h('ul', { class: 'legend', 'aria-label': 'What runs for you today' }, jobs.map(job => h('li', {}, h('b', {}, job.title), ' ', job.schedule.replace(/^Every day at /, '').toLowerCase()))) : null);
 }
 // Once a minute, and when the jobs become known, the sun and the marks are moved without redrawing the page.
@@ -386,7 +389,7 @@ function chatView() {
   });
   const thread = h('div', { class: 'thread' },
     state.turns.length ? state.turns.map(turnElement) : h('div', { class: 'welcome' }, h('div', { class: 'welcome-words' },
-      h('div', { class: 'hello' }, mascot({ size: 118, turn: stockholm().minutes / 1440 * 360, label: 'Daylight, your assistant' }), h('p', { class: 'kicker' }, greeting(stockholm().minutes))),
+      h('p', { class: 'kicker' }, greeting(stockholm().minutes)),
       h('h2', {}, 'It keeps working ', h('em', {}, 'while you’re away.')),
       h('p', {}, 'I remember what you tell me, watch job postings, grocery offers and research topics while you are away, keep your calendar in view, and can plan a day out in Stockholm.'),
       h('div', { class: 'ideas' }, ideas.map(([kind, text]) => h('button', { type: 'button', onclick: () => send(text) }, h('small', {}, kind), text)))),

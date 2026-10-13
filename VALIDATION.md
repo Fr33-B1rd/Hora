@@ -720,3 +720,20 @@ Where she appears: beside the greeting on the opening screen, and in the bubble 
 Seen in the browser on the local server: the standalone picture on light and on dark, the opening screen with her beside the greeting, and the thinking, speaking and happy moods placed by hand. The first dark version was wrong (her colours inverted with the theme and her face disappeared) and was redrawn with fixed colours. Her animations were seen only as stills, since the preview throttles animation; the speaking mood is drawn but not yet used by the page.
 
 Tests: 126 Node, 23 Python, all passing.
+
+
+## 2026-10-13 — The page redesigned around the user's character
+
+The user supplied a character illustration (a small winged girl in Egyptian dress with the Eye of Horus above her head) and asked for the design to be rebuilt around it. The vector mascot from earlier today was removed.
+
+- **Her artwork is used as it is.** `design/cutout.py` (Pillow, run in WSL) removes the near-white background by flood fill from the picture's edges, so the white of her dress is kept, then removes the ground shadow and the pale glow marks by rule. It writes `public/character.webp` (817×880, 126 KB, transparent) and `public/character-head.webp` (256×256, 28 KB). The original is kept at `design/character-original.webp`.
+- **Where she stands.** On the opening screen she is in front of the day dial, which becomes her halo: the ring of hours, the daylight arc, the sun and the job marks surround her; the time, date and sunrise/sunset moved to a caption beneath. She floats gently and arrives after the dial has drawn itself. A warm disc behind her (stronger in night colours) keeps her dark hair readable on a dark page. Her face appears beside the reply while the assistant is working, inside a turning dashed ring.
+- **The palette is hers.** Ink is the navy of her hair, the one signal colour is the gold of her collar (replacing lime), a lapis accent from her eyes is used for link underlines, the working sweep and the avatar's ring, and the paper is warmer. Night colours are deep blue instead of near-black.
+
+Seen in the browser on the local server: the opening screen in day and in night colours with her in the dial, and the working bubble with her face. The first night version left her hair lost against the background; the disc behind her was enlarged and brightened and she now reads clearly. No console errors.
+
+Not checked: phone width; her float and arrival as motion (stills only); the cut-out's edge at full size on a very large screen (a faint pale fringe is possible where her outline met the white background).
+
+Open question recorded for the public repository: the illustration's origin and whether it may be redistributed under the repository's licence are for the user to confirm; it is the one file in the project not written here.
+
+Tests: 126 Node, 23 Python, all passing.
