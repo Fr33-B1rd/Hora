@@ -630,3 +630,27 @@ Tests: 109 Node, 23 Python, all passing.
 - The reminder took two calls to the scheduling tool for one job (the first presumably refused); the cause was not looked into.
 
 Known limits: the assistant sees only what is said in the group after this is switched on; the to-do lists are not yet shown on the “What I know” page; one conversation and one memory are shared by the whole group and with the owner's private chat.
+
+
+## 2026-10-13 — Voice on the web page: heard on the server, and a separate short line spoken
+
+Design (the user's): what is spoken is not what is written. The full answer stays on screen; the voice gives a brief acknowledgement the moment the speaker stops, one phrase about what is actually happening if the wait passes three seconds, and one short line made for the ear when the answer is ready. That line is shown under the answer (“Said aloud: …”).
+
+What was built.
+- Hearing: `lib/speech.mjs` keeps one Python worker (`lib/transcribe.py`, faster-whisper) loaded; the page records until a pause follows speech (`public/voice.mjs`) and posts the clip to `POST /api/voice/hear`. Place names, the user's research topics and job roles are passed to the model as words to expect.
+- The spoken line: `spokenLine` in `lib/voice.mjs` asks the main Nemotron model for one or two sentences. Code refuses a line containing a number that is not in the written answer, a link, or markup, and falls back to “Here's what I found. The details are on the screen.”
+- A question to the user is never paraphrased: it is spoken word for word. This rule was added after the live trial below.
+- Speaking: Google Cloud Text-to-Speech (Chirp 3 HD) through a service account, signed in from Node without a library; repeated phrases are kept in memory. `POST /api/voice/say` will speak only the assistant's own fixed phrases, so the page cannot be used to synthesise arbitrary text. Without a key the browser's own voice speaks the same lines.
+- `deploy/voice-on.sh` installs the listener, optionally the voice key, and checks both.
+
+Measured on the VM (2 shared cores, AMD EPYC 7B12, 3.9 GB), with `deploy/measure-whisper.sh`: `base.en` took 1.3–1.5 s per clip and 365 MB; `small.en` and `small` took 3.9–4.5 s and 870–940 MB. All three transcribed an 11-second real voice exactly. Two synthetic (robot-voice) clips were partly misheard by every model, so they say little about accuracy; “Slussen” and “Medborgarplatsen” survived in all of them with the hint words. Chosen: `base.en`.
+
+Live trial of the spoken line with the real model, five written answers: 1.2–3.2 s each, natural and free of lists, times and links (for example, for three events with links and times: “I found a jazz festival at multiple venues, a comedy show tonight, and free entry at a modern art museum this evening. Want more details on any of them?”). One line was wrong in a way that matters: for a calendar event that was only being proposed it said “I've scheduled a meeting with Anna”. Hence the rule that a closing question is spoken verbatim, preceded by “The details are on the screen.”
+
+Checked on the local server with voice not configured: the page loads without errors and shows no microphone button; `/api/voice/say` returns the phrase for a progress step and refuses arbitrary text (400); `/api/voice/line` returns a line with no audio.
+
+Tests: 117 Node, 23 Python, all passing (worker protocol against a stand-in process, the number check, question handling, service-account signing verified against the public key, the clip queue, the end-of-speech rule).
+
+**Not tested: anything that needs a microphone, a speaker, the Python worker or Google's speech service.** Specifically: recording in a real browser, the worker reading a real browser recording (WebM/Opus), recognition of the user's own voice and accent, the Chirp request and its audio, how the timing of acknowledgement, waiting phrase and spoken line feels, and whether the browser allows audio to start after the asynchronous steps. All of it will first run on the VM.
+
+Known limits: English only; one recording at a time; the model's line is checked for numbers, not for other invented claims; “base.en” is the least accurate Whisper size and was chosen for speed on this machine.

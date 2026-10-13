@@ -30,6 +30,9 @@
 <h2>Scheduled jobs</h2>
 <p>The research digest sends the search words of your topics to the public arXiv service, then asks a small Nemotron model which new papers are relevant. The grocery job reads Lidl Sverige's public weekly offer pages once a day and asks the same model which offers match your likes and dislikes. Digests are delivered through Telegram, so their text passes through Telegram's servers. You can pause either job on the “What I know” page.</p>
 
+<h2>Voice</h2>
+<p>The microphone is used only while you hold a recording open with the microphone button. The recording goes to this server and is turned into text here, by a speech model running on this machine; it is not sent to any speech service and is not kept. What you hear back is not the written answer: it is a short acknowledgement, a phrase about what is happening, and one brief line written for the ear by a Nemotron model on Nebius. Where a natural voice is set up, only those short lines are sent to Google Cloud Text-to-Speech to be turned into audio; otherwise your browser's own voice speaks them. The line that was spoken is shown under the answer.</p>
+
 <h2>Job search</h2>
 <p>A CV you upload is turned into text on this server and kept in the assistant's home folder; the file itself is not kept. To check postings against it, the CV text and your stated preferences are sent to Nemotron models on Nebius, together with the text of each posting. The job titles you ask for are sent as search words to Arbetsförmedlingen's public job listings and to the remote-job boards Himalayas and Jobicy; your CV is never sent to them. Each match links to the original posting at its source. You can remove the CV, and with it every match, on the “What I know” page. Nothing is ever sent to an employer: applying is yours to do.</p>
 

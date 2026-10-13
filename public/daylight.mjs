@@ -2,6 +2,7 @@
 // a page showing what that assistant remembers and does on a schedule.
 
 import { mountJourneyMap } from './journey-map.mjs';
+import { createPlayer, record } from './voice.mjs';
 
 const app = document.getElementById('app');
 const store = {
@@ -102,7 +103,7 @@ async function streamReply(text, { onText, onStep }) {
       if (data && data !== '[DONE]') {
         try {
           const payload = JSON.parse(data);
-          if (event === 'hermes.tool.progress') { if (payload.status !== 'completed') onStep(stepLabel(payload)); }
+          if (event === 'hermes.tool.progress') { if (payload.status !== 'completed') onStep(stepLabel(payload), String(payload.tool || '')); }
           else if (payload.choices?.[0]?.delta?.content) onText(payload.choices[0].delta.content);
         } catch { /* a partial or non-JSON frame: skip it */ }
       }
@@ -135,6 +136,7 @@ function richText(text) {
 
 function turnElement(turn) {
   const el = h('div', { class: `turn ${turn.role}${turn.error ? ' error' : ''}` }, richText(turn.text));
+  if (turn.said) el.append(h('small', { class: 'said' }, 'Said aloud: ' + turn.said));
   if (turn.steps?.length) el.append(h('small', { class: 'steps' }, turn.steps.join(' · ') + (turn.seconds ? ` · ${turn.seconds} s` : '')));
   const journey = turn.planId && plans.get(turn.planId);
   return journey?.plans.length ? [el, planCard(turn, journey)] : el;
@@ -230,9 +232,10 @@ function planCard(turn, journey) {
         : null));
 }
 
-async function send(text) {
+async function send(text, options = {}) {
   text = text.trim();
   if (!text || state.sending) return;
+  const spoken = options.spoken === true;   // the request was spoken, so the answer is announced aloud too
   state.turns.push({ role: 'user', text });
   state.sending = true; state.working = 'Thinking';
   render();
@@ -241,10 +244,12 @@ async function send(text) {
   const pending = h('div', { class: 'turn assistant', 'aria-live': 'polite' }, status);
   thread.append(pending); thread.scrollTop = thread.scrollHeight;
   const started = performance.now(), sentAt = Date.now(), steps = [];
-  let reply = '';
+  let reply = '', lastTool = '';
+  // If nothing has come back after a few seconds, one spoken phrase says what is actually happening.
+  const waiting = spoken ? setTimeout(() => { if (!reply) sayPhrase({ tool: lastTool }); }, 3000) : null;
   try {
     await streamReply(text, {
-      onStep(label) { if (steps.at(-1) !== label) steps.push(label); if (!reply) status.lastChild.textContent = label; },
+      onStep(label, tool) { lastTool = tool; if (steps.at(-1) !== label) steps.push(label); if (!reply) status.lastChild.textContent = label; },
       onText(chunk) {
         reply += chunk;
         pending.replaceChildren(...richText(reply.trimStart()));
@@ -255,14 +260,74 @@ async function send(text) {
     const turn = { role: 'assistant', text: reply.trim(), steps: [...new Set(steps)], seconds: Math.round((performance.now() - started) / 1000) };
     if (steps.includes(PLAN_STEP)) await attachLatestPlan(turn, sentAt);
     state.turns.push(turn);
+    if (spoken) announce(turn, text);
   } catch (error) {
     state.turns.push({ role: 'assistant', text: error.message, error: true });
   }
+  clearTimeout(waiting);
   state.sending = false;
   saveTurns();
   render();
   if (steps.length) loadProfile(true);  // the assistant may have changed what it remembers
 }
+
+// ---- voice ----
+const player = createPlayer();
+const voice = { ready: false, speakReady: false, phase: 'idle', level: 0, acknowledgements: [], clips: new Map(), recording: null, note: '' };
+async function loadVoice() {
+  try {
+    const status = await api('/api/voice/status');
+    voice.ready = !!status.hear?.configured && !!navigator.mediaDevices?.getUserMedia; voice.speakReady = !!status.speak?.configured; voice.acknowledgements = status.acknowledgements || [];
+    // Fetch the acknowledgements ahead of time, so the first one plays the instant the speaker stops.
+    if (voice.ready && voice.speakReady) for (const text of voice.acknowledgements) api('/api/voice/say', { text }).then(clip => { if (clip.audio) voice.clips.set(text, clip.audio); }).catch(() => {});
+  } catch { voice.ready = false; }
+  if (state.view === 'chat') render();
+}
+async function sayPhrase({ text, tool }) {
+  try {
+    if (text && voice.clips.has(text)) return player.say({ audio: voice.clips.get(text) });
+    const clip = await api('/api/voice/say', tool ? { tool } : { text });
+    return player.say({ audio: clip.audio, text: clip.text });
+  } catch { /* speaking is an extra: the text on screen is the answer */ }
+}
+// The short line made for the ear; it is shown under the answer too, so what was said can be read.
+async function announce(turn, asked) {
+  try {
+    const made = await api('/api/voice/line', { asked, written: turn.text });
+    turn.said = made.line; saveTurns(); if (state.view === 'chat' && !state.sending) render();
+    player.say({ audio: made.audio, text: made.line });
+  } catch { /* the written answer stands on its own */ }
+}
+async function listen() {
+  if (voice.phase === 'listening') return voice.recording?.stop();
+  if (voice.phase !== 'idle' || state.sending) return;
+  player.stop(); voice.note = '';
+  try {
+    voice.recording = await record({ onLevel(level) { voice.level = level; const meter = app.querySelector('.mic i'); if (meter) meter.style.transform = `scale(${1 + Math.min(1.2, level * 12)})`; } });
+    voice.phase = 'listening'; render();
+    const captured = await voice.recording.finished; voice.recording = null;
+    if (!captured) { voice.phase = 'idle'; voice.note = 'I did not hear anything.'; return render(); }
+    voice.phase = 'hearing'; render();
+    const acknowledgement = voice.acknowledgements[Math.floor(Math.random() * voice.acknowledgements.length)];
+    if (acknowledgement) sayPhrase({ text: acknowledgement });      // covers the moment it takes to transcribe and to think
+    const heard = await api('/api/voice/hear', captured);
+    voice.phase = 'idle';
+    if (!heard.text?.trim()) { player.stop(); voice.note = 'I could not make that out. Try again, or type it.'; return render(); }
+    send(heard.text.trim(), { spoken: true });
+  } catch (error) { voice.recording = null; voice.phase = 'idle'; voice.note = error.message; player.stop(); render(); }
+}
+function micButton() {
+  if (!voice.ready) return null;
+  const label = { idle: 'Speak', listening: 'Listening… click to stop', hearing: 'One moment…' }[voice.phase];
+  return h('button', { class: 'mic ' + voice.phase, type: 'button', title: label, 'aria-label': label, 'aria-pressed': voice.phase === 'listening' ? 'true' : 'false', disabled: voice.phase === 'hearing' || (state.sending && voice.phase === 'idle'), onclick: listen },
+    h('i', { 'aria-hidden': 'true' }), micIcon());
+}
+const micIcon = () => {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.8'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('aria-hidden', 'true');
+  svg.innerHTML = '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>';
+  return svg;
+};
 
 function chatView() {
   const input = h('textarea', {
@@ -280,7 +345,8 @@ function chatView() {
       h('div', {}, h('h1', {}, 'Chat'), h('p', {}, 'The same assistant, memory and skills as your chat app.')),
       h('button', { class: 'quiet', type: 'button', disabled: state.sending || !state.turns.length, onclick: newConversation }, 'New conversation')),
     thread,
-    h('form', { class: 'composer', onsubmit(e) { e.preventDefault(); send(input.value); } }, input, h('button', { class: 'send', type: 'submit', disabled: state.sending }, 'Send')),
+    voice.note ? h('p', { class: 'voice-note', role: 'status' }, voice.note) : null,
+    h('form', { class: 'composer', onsubmit(e) { e.preventDefault(); send(input.value); } }, micButton(), input, h('button', { class: 'send', type: 'submit', disabled: state.sending }, 'Send')),
   ];
   queueMicrotask(() => { thread.scrollTop = thread.scrollHeight; if (!state.sending) input.focus(); });
   return view;
@@ -475,4 +541,5 @@ function render() {
 
 render();
 loadProfile(true);
+loadVoice();
 restorePlan();

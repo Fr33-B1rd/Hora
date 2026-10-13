@@ -12,6 +12,7 @@ What it does today:
 - **Day planner.** Ask for a day out in Stockholm and it returns a plan checked against real opening hours and real public-transport times, shown on a map. It can add the plan to your Google Calendar, but only after you have seen the exact changes and confirmed them.
 - **Calendar.** Ask what you have on, or ask it to add an event. It tells you exactly what it would add, names anything it overlaps, and writes only after you answer yes in a separate message. When you plan a day, it tells you what is already there first.
 - **To-do lists and reminders.** “Add renew passport to my list”, “tick that off”, “remind me on Friday at 9”. In a Telegram group it keeps one shared list for everyone and can summarise what was discussed since it joined.
+- **Voice.** Speak to it on the web page. Your speech is turned into text on your own server. What it says back is not the written answer read aloud: a short acknowledgement, then one brief line made for the ear, while the detail stays on screen.
 - **What I know.** A page listing everything it has remembered about you, your CV and job search, the topics and foods it tracks, and the jobs it runs for you. Anything can be removed or paused there.
 
 ## How it is put together
