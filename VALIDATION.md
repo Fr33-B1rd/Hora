@@ -654,3 +654,14 @@ Tests: 117 Node, 23 Python, all passing (worker protocol against a stand-in proc
 **Not tested: anything that needs a microphone, a speaker, the Python worker or Google's speech service.** Specifically: recording in a real browser, the worker reading a real browser recording (WebM/Opus), recognition of the user's own voice and accent, the Chirp request and its audio, how the timing of acknowledgement, waiting phrase and spoken line feels, and whether the browser allows audio to start after the asynchronous steps. All of it will first run on the VM.
 
 Known limits: English only; one recording at a time; the model's line is checked for numbers, not for other invented claims; “base.en” is the least accurate Whisper size and was chosen for speed on this machine.
+
+
+## 2026-10-13 — New look for the web page
+
+The page keeps its structure and is restyled as an instrument: paper and ink, hairlines and right angles, one signal colour (lime) used only as a fill behind dark text, a geometric typeface for words and monospace for everything the machine reports (steps, counts, labels). Dark mode follows the system setting. Motion marks a change of state only: a new message rises in, a section draws its rule and cards on opening, the mark in the corner orbits slowly and quickly while the assistant works, the working indicator is three level bars over a sweeping line, the online dot pings. All of it is switched off for users who ask for reduced motion.
+
+Checked in the browser on the local server: the welcome screen, a conversation with a spoken-line caption and step line, the "What I know" page, dark mode for both, and phone width (375 px) for the chat. No console errors from the page.
+
+Not checked, because the assistant was not running locally: the working indicator and message animation during a real reply, the plan card with its map, the microphone button's states, and "What I know" at phone width. Contrast was judged by eye, not measured.
+
+The two typefaces come from Google Fonts, so opening the page now makes a request to Google; the data page says so, and the page falls back to system fonts without them.

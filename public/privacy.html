@@ -5,12 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Daylight · Data and services</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/daylight.css">
 <style>
   body { height: auto; }
   article { max-width: 720px; margin: 40px auto; padding: 32px; line-height: 1.6; font-size: 15px; }
-  article h1 { font-size: 24px; margin: 0 0 8px; }
-  article h2 { font-size: 16px; margin: 28px 0 6px; }
+  article h1 { font-size: 34px; font-weight: 500; letter-spacing: -0.035em; margin: 0 0 12px; }
+  article h2 { margin: 30px 0 8px; }
+  article p { color: var(--ink); }
   article p { margin: 0 0 12px; }
   article a { color: var(--green); }
   @media (max-width: 760px) { article { margin: 0; padding: 20px 16px; border: 0; border-radius: 0; } }
@@ -42,6 +46,9 @@
 <h2>Calendar</h2>
 <p>Connecting Google Calendar lets Daylight read the chosen day in your primary calendar and create or update its own events there. The titles and times of that day's events are sent to the model, so it can tell you what a plan was fitted around or what you have on; descriptions and guests are not. An event you ask for in conversation is added only after the assistant has told you exactly what it would add and you have answered yes in a separate message. A multi-stop plan is added from this page, after a preview of every block. Daylight sends no invitations, deletes nothing it did not create, and does not book, buy or pay for anything.</p>
 <p>Calendar tokens are stored encrypted in the local data folder. The key is in the same folder, so anyone who can read the whole folder can decrypt them: keep it on an account only you use. Disconnecting removes the tokens and any pending previews, not events already created. You can also revoke access in your Google account's third-party access settings.</p>
+
+<h2>This page itself</h2>
+<p>The page's two typefaces are loaded from Google Fonts, so your browser makes a request to Google when it opens Daylight. Nothing about your conversations is in that request. If the fonts cannot be loaded, the page falls back to the fonts on your device.</p>
 
 <h2>Limits worth knowing</h2>
 <p>Opening hours do not guarantee a table, a seat or a ticket. Costs are estimates. Offers and listings can change after they were read. This is a personal prototype for one user on one machine; it is not built to be exposed to the internet as it stands.</p>

@@ -39,7 +39,8 @@ const sun = () => {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor');
   svg.setAttribute('stroke-width', '1.8'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('aria-hidden', 'true');
-  svg.innerHTML = '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7 7 17M17 7l1.7-1.7"/>';
+  svg.setAttribute('stroke-width', '1.4');
+  svg.innerHTML = '<circle class="core" cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/><g class="ring"><circle cx="12" cy="12" r="9.6" stroke-dasharray="2.2 3.4" opacity="0.55"/><circle cx="21.6" cy="12" r="1.7" fill="currentColor" stroke="none"/></g>';
   return svg;
 };
 
@@ -114,10 +115,10 @@ async function streamReply(text, { onText, onStep }) {
 
 // ---- chat ----
 const ideas = [
+  ['Jobs', 'Any jobs for me?'],
   ['Groceries', 'What’s on offer this week?'],
   ['Going out', 'Plan tomorrow: a museum and sushi, starting from Slussen'],
-  ['Research', 'Track new papers on evaluating LLM agents'],
-  ['Memory', 'What do you know about me?'],
+  ['Calendar', 'What do I have on tomorrow?'],
 ];
 
 // Plain text with clickable links; nothing from the reply is treated as markup.
@@ -134,8 +135,9 @@ function richText(text) {
   return parts;
 }
 
-function turnElement(turn) {
-  const el = h('div', { class: `turn ${turn.role}${turn.error ? ' error' : ''}` }, richText(turn.text));
+let shownTurns = state.turns.length;   // turns already on screen: only later ones animate in
+function turnElement(turn, index) {
+  const el = h('div', { class: `turn ${turn.role}${turn.error ? ' error' : ''}${index >= shownTurns ? ' fresh' : ''}` }, richText(turn.text));
   if (turn.said) el.append(h('small', { class: 'said' }, 'Said aloud: ' + turn.said));
   if (turn.steps?.length) el.append(h('small', { class: 'steps' }, turn.steps.join(' · ') + (turn.seconds ? ` · ${turn.seconds} s` : '')));
   const journey = turn.planId && plans.get(turn.planId);
@@ -241,7 +243,7 @@ async function send(text, options = {}) {
   render();
   const thread = app.querySelector('.thread');
   const status = h('span', { class: 'working' }, h('i'), h('i'), h('i'), h('span', {}, state.working));
-  const pending = h('div', { class: 'turn assistant', 'aria-live': 'polite' }, status);
+  const pending = h('div', { class: 'turn assistant fresh', 'aria-live': 'polite' }, status);
   thread.append(pending); thread.scrollTop = thread.scrollHeight;
   const started = performance.now(), sentAt = Date.now(), steps = [];
   let reply = '', lastTool = '';
@@ -259,10 +261,10 @@ async function send(text, options = {}) {
     if (!reply.trim()) throw Error('The assistant finished without an answer. Please try again.');
     const turn = { role: 'assistant', text: reply.trim(), steps: [...new Set(steps)], seconds: Math.round((performance.now() - started) / 1000) };
     if (steps.includes(PLAN_STEP)) await attachLatestPlan(turn, sentAt);
-    state.turns.push(turn);
+    state.turns.push(turn); shownTurns++;   // it replaces the bubble already on screen, so it does not animate again
     if (spoken) announce(turn, text);
   } catch (error) {
-    state.turns.push({ role: 'assistant', text: error.message, error: true });
+    state.turns.push({ role: 'assistant', text: error.message, error: true }); shownTurns++;
   }
   clearTimeout(waiting);
   state.sending = false;
@@ -331,14 +333,14 @@ const micIcon = () => {
 
 function chatView() {
   const input = h('textarea', {
-    rows: '1', maxlength: '4000', placeholder: 'Ask, plan, or tell me something to remember', 'aria-label': 'Message', disabled: state.sending,
+    rows: '1', maxlength: '4000', placeholder: 'Ask, plan, or tell me something', 'aria-label': 'Message', disabled: state.sending,
     onkeydown(e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(input.value); } },
     oninput() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px'; },
   });
   const thread = h('div', { class: 'thread' },
     state.turns.length ? state.turns.map(turnElement) : h('div', { class: 'welcome' },
       h('h2', {}, 'What can I do for you?'),
-      h('p', {}, 'I remember what you tell me, keep an eye on grocery offers and research topics, and can plan a day out in Stockholm.'),
+      h('p', {}, 'I remember what you tell me, watch job postings, grocery offers and research topics while you are away, keep your calendar in view, and can plan a day out in Stockholm.'),
       h('div', { class: 'ideas' }, ideas.map(([kind, text]) => h('button', { type: 'button', onclick: () => send(text) }, h('small', {}, kind), text)))));
   const view = [
     h('header', { class: 'head' },
@@ -352,7 +354,7 @@ function chatView() {
   return view;
 }
 function newConversation() {
-  state.turns = []; state.session = newSession();
+  state.turns = []; shownTurns = 0; state.session = newSession();
   store.set('daylight-turns', []); store.set('daylight-session', state.session);
   render();
 }
@@ -502,7 +504,7 @@ function profileView() {
   if (!state.profile) return [head, h('div', { class: 'know' }, h('p', { class: 'empty' }, state.profileError || 'Loading…'))];
   return [head, h('div', { class: 'know' },
     memoryCard('user', 'About you', 'Kept in mind in every conversation, on every channel.'),
-    careerCard(), foodCard(), topicsCard(), calendarCard(), jobsCard(),
+    calendarCard(), careerCard(), foodCard(), topicsCard(), jobsCard(),
     state.profile.memory.notes.entries.length ? memoryCard('notes', 'Assistant’s own notes', 'What it has learned about doing things for you.') : null)];
 }
 
@@ -514,7 +516,8 @@ function statusBox() {
     online ? 'Running on Hermes Agent with NVIDIA Nemotron on Nebius.' : 'Start the Hermes gateway to chat.');
 }
 function renderStatus() { app.querySelector('.status')?.replaceWith(statusBox()); }
-function go(view) { state.view = view; store.set('daylight-view', view); render(); if (view === 'profile') loadProfile(true); }
+let entering = true;   // a section that has just been opened draws itself in once
+function go(view) { entering = state.view !== view || entering; state.view = view; store.set('daylight-view', view); render(); if (view === 'profile') loadProfile(true); }
 
 // Calendar steps are not kept across reloads: a preview must always be fresh.
 function saveTurns() { store.set('daylight-turns', state.turns.slice(-40).map(({ calendar, ...turn }) => turn)); }
@@ -530,13 +533,16 @@ function render() {
   mappedPlan = null;
   queueMicrotask(() => { if (mappedPlan && state.view === 'chat') mountJourneyMap(mappedPlan.journey, mappedPlan.plan); });
   const tab = (view, label) => h('button', { type: 'button', 'aria-current': state.view === view ? 'page' : null, onclick: () => go(view) }, label);
-  app.replaceChildren(h('div', { class: 'shell' },
+  const enter = entering && (state.view !== 'profile' || !!state.profile);
+  if (enter) entering = false;
+  app.replaceChildren(h('div', { class: 'shell' + (state.sending ? ' busy' : '') },
     h('aside', { class: 'side' },
       h('div', { class: 'brand' }, sun(), 'Daylight'),
       h('nav', { class: 'nav', 'aria-label': 'Sections' }, tab('chat', 'Chat'), tab('profile', 'What I know')),
       statusBox(),
       h('a', { class: 'legacy', href: '/privacy.html' }, 'Data and services')),
-    h('main', { class: 'main' }, state.view === 'profile' ? profileView() : chatView())));
+    h('main', { class: 'main' + (enter ? ' enter' : '') }, state.view === 'profile' ? profileView() : chatView())));
+  shownTurns = state.turns.length;
 }
 
 render();
