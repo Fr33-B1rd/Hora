@@ -35,11 +35,24 @@ from faster_whisper import WhisperModel
 clips = [c for c in ("short.wav", "names.wav", "real.flac") if os.path.exists(c) and os.path.getsize(c) > 0]
 hints = "Slussen, Medborgarplatsen, Fridhemsplan, T-Centralen, Södermalm, Daylight"
 
+def decode(path):
+    """The clip as 16 kHz mono samples. Done here with PyAV directly: faster-whisper's own
+    file reader passes an option that the newest PyAV no longer accepts."""
+    import av, numpy as np
+    resampler = av.AudioResampler(format="s16", layout="mono", rate=16000)
+    chunks = []
+    with av.open(path) as container:
+        for frame in container.decode(audio=0):
+            for out in resampler.resample(frame):
+                chunks.append(out.to_ndarray().reshape(-1))
+        for out in resampler.resample(None):
+            chunks.append(out.to_ndarray().reshape(-1))
+    return np.concatenate(chunks).astype(np.float32) / 32768.0
+
+audio = {clip: decode(clip) for clip in clips}
+
 def seconds(path):
-    if path.endswith(".wav"):
-        with wave.open(path) as w:
-            return w.getnframes() / w.getframerate()
-    return 11.0
+    return len(audio[path]) / 16000
 
 print(f"{'model':<10} {'load s':>7} {'clip':<11} {'audio s':>8} {'time s':>7}  heard")
 for name in ("base.en", "small.en", "small"):
@@ -50,7 +63,7 @@ for name in ("base.en", "small.en", "small"):
         best, text = None, ""
         for _ in range(2):  # the first run of a model is slower; the second is what a user would feel
             start = time.time()
-            segments, _info = model.transcribe(clip, beam_size=1, language="en", initial_prompt=hints, vad_filter=False)
+            segments, _info = model.transcribe(audio[clip], beam_size=1, language="en", initial_prompt=hints, vad_filter=False)
             text = " ".join(s.text.strip() for s in segments)
             took = time.time() - start
             best = took if best is None else min(best, took)
