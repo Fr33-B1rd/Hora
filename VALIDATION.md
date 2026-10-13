@@ -700,3 +700,12 @@ Tested (`tests/atmosphere.test.mjs`): a dot never leaves its grid point unless t
 Seen in the browser on the local server: the lens around the pointer by day, and the star field by night; no console errors. **Not measured: how smoothly it runs.** The preview pane throttles animation to about one frame a second when it is not in front, so the motion itself, and its cost on a slow laptop or a large screen, have only been reasoned about (roughly three thousand small rectangles per frame). The working rings were not seen live, since the assistant was not running locally.
 
 Tests: 126 Node, 23 Python, all passing.
+
+
+## 2026-10-13 — Chat heading removed; a curled page corner starts a new conversation
+
+At the user's request the chat screen no longer has its heading (“Chat”), its subtitle or the day strip, and the “New conversation” button is replaced by a curled corner at the top right of the page. At rest it is a small folded corner showing the signal colour underneath. Pointing at it (or focusing it with the keyboard) lifts it further and shows “New conversation”. Clicking it turns the page: the fold sweeps from the corner across the whole sheet, the new conversation is put in place underneath, and the sheet fades. The corner is hidden when there is nothing to turn, disabled while a reply is being written, and under reduced motion a click starts the new conversation at once. The “What I know” page keeps its heading and strip.
+
+Checked in the browser on the local server: the corner at rest, the lifted state with its label, a frame from the middle of the turn, and a real click (two messages before; none after, the opening screen shown, the turning sheet removed, the stored conversation empty; no console errors). The motion itself was seen only as stills, because the preview pane throttles animation; its smoothness, and the corner on a phone-width screen, are unchecked.
+
+Tests: 126 Node, 23 Python, all passing.

@@ -391,16 +391,37 @@ function chatView() {
       h('div', { class: 'ideas' }, ideas.map(([kind, text]) => h('button', { type: 'button', onclick: () => send(text) }, h('small', {}, kind), text)))),
       dayPanel()));
   const view = [
-    h('header', { class: 'head' },
-      h('div', {}, h('h1', {}, 'Chat'), h('p', {}, 'The same assistant, memory and skills as your chat app.')),
-      h('button', { class: 'quiet', type: 'button', disabled: state.sending || !state.turns.length, onclick: newConversation }, 'New conversation')),
-    dayStrip({ jobs: activeJobs() }),
+    state.turns.length ? pageCurl() : null,
     thread,
     voice.note ? h('p', { class: 'voice-note', role: 'status' }, voice.note) : null,
     h('form', { class: 'composer', onsubmit(e) { e.preventDefault(); send(input.value); } }, micButton(), input, h('button', { class: 'send', type: 'submit', disabled: state.sending }, 'Send')),
   ];
   queueMicrotask(() => { thread.scrollTop = state.turns.length ? thread.scrollHeight : 0; if (!state.sending) input.focus(); });
   return view;
+}
+// The corner of the page is curled. Pointing at it lifts it further and shows what is underneath;
+// clicking turns the whole page over to a fresh one.
+function pageCurl() {
+  return h('button', { class: 'curl', type: 'button', 'aria-label': 'New conversation', disabled: state.sending, onclick: turnPage },
+    h('span', { class: 'curl-under', 'aria-hidden': 'true' }, h('b', {}, 'New'), h('b', {}, 'conversation')),
+    h('span', { class: 'curl-flap', 'aria-hidden': 'true' }));
+}
+let turning = false;
+function turnPage() {
+  if (turning || state.sending) return;
+  const main = app.querySelector('.main');
+  if (!main || matchMedia('(prefers-reduced-motion: reduce)').matches) return newConversation();
+  turning = true; player.stop();
+  // The turning page is drawn over the main column and outlives the redraw underneath it.
+  const box = main.getBoundingClientRect();
+  const sheet = h('div', { class: 'pageturn', 'aria-hidden': 'true', style: `left:${box.left}px;top:${box.top}px;width:${box.width}px;height:${box.height}px` },
+    h('span', { class: 'curl-under' }), h('span', { class: 'curl-flap' }));
+  document.body.append(sheet);
+  sheet.style.setProperty('--full', Math.ceil((box.width + box.height) * 1.02) + 'px');
+  requestAnimationFrame(() => requestAnimationFrame(() => sheet.classList.add('go')));
+  const finish = () => { if (!turning) return; turning = false; newConversation(); sheet.classList.add('done'); setTimeout(() => sheet.remove(), 420); };
+  sheet.addEventListener('transitionend', event => { if (event.propertyName === 'width' && event.target === sheet.firstChild) finish(); });
+  setTimeout(finish, 1100);   // in case the browser never reports the end of the animation
 }
 function newConversation() {
   state.turns = []; shownTurns = 0; state.session = newSession();

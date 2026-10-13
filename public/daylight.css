@@ -132,8 +132,31 @@ a:hover { background: var(--signal); color: var(--signal-ink); text-decoration-c
 .quiet:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
 .quiet:disabled { opacity: 0.35; cursor: default; }
 
+/* The curled corner of the page: what is underneath shows in the signal colour, and the
+   lifted corner is the back of the sheet. Its size is one number, --s, so that pointing at it
+   and turning the whole page are the same drawing at different sizes. */
+.curl, .pageturn { --s: 46px; }
+.curl { position: absolute; top: 0; right: 0; z-index: 3; width: var(--s); height: var(--s); padding: 0; border: 0; background: none; transition: width 0.42s var(--ease), height 0.42s var(--ease); }
+.curl:hover:not(:disabled), .curl:focus-visible { --s: 168px; outline: none; }
+.curl:disabled { cursor: default; }
+.curl-under, .curl-flap { position: absolute; top: 0; right: 0; width: var(--s); height: var(--s); transition: width 0.42s var(--ease), height 0.42s var(--ease); }
+.curl-under { background: var(--signal); clip-path: polygon(0 0, 100% 0, 100% 100%); display: grid; align-content: start; justify-items: end; gap: 1px; padding: 13px 14px 0 0; color: var(--signal-ink); font: 500 11px/1.25 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; overflow: hidden; }
+.curl-under b { font-weight: 500; white-space: nowrap; opacity: 0; transform: translate(8px, -6px); transition: opacity 0.2s, transform 0.35s var(--ease); }
+.curl:hover:not(:disabled) .curl-under b, .curl:focus-visible .curl-under b { opacity: 1; transform: none; transition-delay: 0.14s; }
+.curl:hover:not(:disabled) .curl-under b + b, .curl:focus-visible .curl-under b + b { transition-delay: 0.2s; }
+/* The back of the sheet, folded over along the diagonal: lit along the fold, shaded at the tip, casting a shadow on the page. */
+.curl-flap { clip-path: polygon(0 0, 100% 100%, 0 100%); filter: drop-shadow(-3px 4px 5px rgba(0, 0, 0, 0.28));
+  background: linear-gradient(to bottom left, transparent 50%, color-mix(in srgb, var(--ink) 30%, var(--paper)) 50%, var(--surface) 58%, color-mix(in srgb, var(--ink) 7%, var(--surface)) 82%, color-mix(in srgb, var(--ink) 20%, var(--surface)) 100%); }
+.curl:focus-visible .curl-flap { outline: 2px solid var(--ink); }
+/* Turning the page: the same corner, grown until the fold has crossed the whole sheet. */
+.pageturn { position: fixed; z-index: 20; overflow: hidden; pointer-events: none; transition: opacity 0.38s ease; }
+.pageturn .curl-under, .pageturn .curl-flap { transition: width 0.78s cubic-bezier(0.5, 0, 0.75, 0.3), height 0.78s cubic-bezier(0.5, 0, 0.75, 0.3); }
+.pageturn.go { --s: var(--full); }
+.pageturn .curl-flap { filter: drop-shadow(-10px 12px 18px rgba(0, 0, 0, 0.35)); }
+.pageturn.done { opacity: 0; }
+
 /* Chat */
-.thread { flex: 1; overflow-y: auto; padding: 22px 36px 24px; display: flex; flex-direction: column; gap: 16px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.thread { flex: 1; overflow-y: auto; padding: 58px 36px 24px; display: flex; flex-direction: column; gap: 16px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
 .turn { position: relative; max-width: 720px; padding: 13px 16px; line-height: 1.6; font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .turn.fresh { animation: rise 0.36s var(--ease) both; }
 .turn.user { align-self: flex-end; background: var(--ink); color: var(--paper); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%); padding-right: 22px; }
