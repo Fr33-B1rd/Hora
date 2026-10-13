@@ -737,3 +737,51 @@ Not checked: phone width; her float and arrival as motion (stills only); the cut
 Open question recorded for the public repository: the illustration's origin and whether it may be redistributed under the repository's licence are for the user to confirm; it is the one file in the project not written here.
 
 Tests: 126 Node, 23 Python, all passing.
+
+## 2026-10-13 — Hora name and three character interactions
+
+- Named the assistant Hora in the UI, document title, repository persona and installed Hermes persona. Only the name sentence was replaced in the installed SOUL.md; its prior contents are backed up at data/SOUL.before-hora.md. No scheduler or service configuration changed.
+- Added transparent imagegen assets: public/hora-typing.png (two registered back-view keyboard poses) and public/hora-pull.png (a single crook pose). Exact generation prompts, reference and animation layout are in design/hora-assets.json. Images are served only through the existing static allowlist with image/png MIME type.
+- The pending answer alternates the typing poses every 320 ms, retaining the actual tool-progress text. It stops when reply text arrives or the request ends. This is a two-frame sprite animation, not skeletal animation.
+- Hover/focus on the existing page curl reveals Hora. Clicking pauses briefly while she catches it, then her hook follows the fold midpoint. Existing new-conversation semantics remain; input is blocked during the turn, the completion callback is idempotent, and a timeout releases the UI if the browser skips transitionend. Reduced motion skips the turn and disables sprite/peek motion via the existing media query.
+- Home now has her upper face peeking over an introduction card and four conversation shortcuts. The day dial remains alongside/below it. Dark mode adds a soft glow to keep the navy ahoge readable.
+
+Validation: all 126 existing Node tests passed; final JavaScript syntax and diff whitespace checks passed. Browser checks covered the real home page in light/dark themes, a 390 x 844 mobile viewport, and an isolated fixture on port 4320 for the pending/reply/new-conversation states. Both sprite background positions were observed (0% and 100%, 0.64 s period). The shortcut started a pending turn, its controls disabled, the reply replaced the sprite, and two page-turn runs returned to the introduction with zero old turns, zero overlays, and no inert attribute left on the app. No console errors observed. The temporary fixture and tab were stopped/closed; the real page remains on port 4318 with the original automatic theme restored.
+
+Evidence: artifacts/hora-home.jpg, artifacts/hora-home-night.jpg, artifacts/hora-mobile.jpg, artifacts/hora-typing-mobile.jpg, artifacts/hora-curl.jpg. The fixture lives at artifacts/hora-ui-preview.mjs (ignored local diagnostic artifact).
+
+Scope: Hermes was offline during these checks. The animated waiting/reply sequence used a clearly labelled canned response and no provider calls, calendar operations, or model-quality evaluation. Browser screenshots show key states; motion smoothness across different devices and the OS reduced-motion setting were not manually assessed. Python components were unchanged and were not rerun.
+
+## 2026-10-13 — Retro desktop typing revision
+
+Replaced only public/hora-typing.png with a transparent two-frame sprite featuring a bulky beige CRT, separate tower and keyboard. Legs are brought forward into a narrower V, targeting a 70-degree total opening as an illustrated approximation rather than a measured skeletal angle. Both feet remain visible, with the left partly occluded by the character. The original laptop sheet is retained at design/hora-typing-laptop.png; built-in imagegen prompt history is in design/hora-typing-retro.json. The existing two-frame CSS animation and UI wiring are unchanged.
+
+Verified the final raster by visual inspection, confirmed a 2:1 canvas with alpha, and checked the live asset returns HTTP 200 with image/png. No application code changed; the automated suite was not rerun for this asset-only revision.
+
+## 2026-10-13 — Front-facing grip and sequential staff reach
+
+- New public/hora-peek.png: front-facing upper face and both gripping hands. Responsive portrait width increased from 280 to 440 px; the hands overlap the actual card edge at 81.5% of the image height. The breathing scale pivots at that edge, with pointer events disabled on the artwork so shortcuts remain usable.
+- New public/hora-reach.png: twelve poses in a 4-column, 3-row transparent sheet, taking out the staff, raising it, lifting the heels, reaching, catching and leaning back. A 1320 ms sequential animation precedes the existing 780 ms page turn. The animation-end event starts the pull, with bounded fallbacks; the final pose stays fixed during the pull. Reduced-motion behavior remains immediate. This is frame animation, not skeletal interpolation.
+- New PNGs are explicitly allowlisted and preloaded. Imagegen references and prompts are in design/hora-peek-reach.json and design/hora-assets.json. Earlier artwork remains available.
+
+Validation: 126 Node tests pass. Both new assets return HTTP 200 with image/png. Real homepage inspected on port 4318; isolated provider-free preview on port 4320 checked the complete action. A requestAnimationFrame observer recorded all twelve expected sprite positions, pull start at 1334 ms and completion at 2117 ms. No premature conversation reset; after completion the intro was visible, old turn count was zero and the app was not inert. The fade overlay subsequently disappeared. At 390 x 844, document width equals viewport width (390 px). No browser console errors observed. Preview process/tab stopped, temporary viewport reset. No live model or calendar requests were made.
+
+Evidence: artifacts/hora-reach-timing.json, artifacts/hora-peek-front.jpg, artifacts/hora-peek-front-mobile.jpg. Diagnostic observer: artifacts/hora-probe.mjs, served only by the ignored local preview fixture. OS reduced-motion setting was not manually toggled in this run.
+
+## 2026-10-13 — Effort expressions during the page turn
+
+Edited public/hora-reach.png with built-in imagegen: preparation retains the cheerful face; raising/reaching closes the lips and furrows the brows; the last three pull poses squeeze both eyes into >_< with a pressed mouth. The 4 x 3 frame order, CSS timing and turn lifecycle remain unchanged. Previous sheet preserved at design/hora-reach-before-expressions.png; exact prompt in design/hora-reach-expressions.json.
+
+Visually inspected the generated sheet; verified PNG dimensions against the previous sheet, alpha, and HTTP 200 image/png delivery. This was an asset-only change; no application tests or live model calls were rerun.
+
+
+## 2026-10-13 — Review and merge of the Hora changes
+
+The Hora work above was made in this folder by another tool and left uncommitted. Reviewed before merging:
+- **Code.** `public/daylight.mjs`, `public/daylight.css`, `public/index.html`, `lib/http.mjs` and `hermes/SOUL.daylight.md` read through. The page-turn sequence guards against finishing twice, releases the page (`inert`) on every path including the timeout, and keeps the reduced-motion shortcut. Nothing outside the page and the persona's first sentence was touched. 126 Node tests pass; no whitespace errors.
+- **Artwork.** The three sheets were looked at: the front-facing portrait with both hands, the two typing frames at the beige desktop computer, and the twelve poses with the changing expressions. A few stray red pixels sit on the edges of some poses in the reach sheet; they were left as they are.
+- **Changed on merge.** The four PNGs (about 1.5 MB each, 4.7 MB preloaded on first visit) were moved to `design/` as originals and the page now serves WebP copies written by `design/to-webp.py`: 277, 446 and 267 KB, same pixel sizes, transparency kept, so the frame layouts are unchanged. `hora-pull.png` is no longer used by the page and is not served. The unused head portrait from the earlier design was removed. `design/` is kept in the repository but left out of the archive that goes to the server. The page no longer scrolls sideways while the corner is being pulled. The README's “laptop” was corrected to the desktop computer.
+
+Checked in the browser on the local server with the WebP copies: the opening card with Hora gripping it and the dial beside it; the typing sprite in a pending bubble; a real click on the corner, during which the page was inert and the reach sheet was showing, and after which the conversation was empty, the opening card was back, the turning sheet was gone and the page was usable again. Title and name read “Hora · Daylight” and “Hora”. No console errors.
+
+Not checked here: the motion as motion (the preview throttles animation; the other tool's notes record all twelve frames observed), phone width, and anything with the assistant running. The other tool also changed the first sentence of the locally installed Hermes persona (`~/.hermes/SOUL.md` in WSL) and left a copy of the earlier text at `data/SOUL.before-hora.md`; the VM's persona is unchanged until `hermes/install.sh` is run there.

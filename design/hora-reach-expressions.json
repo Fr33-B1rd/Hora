@@ -1,0 +1,13 @@
+{
+  "tool": "image_gen.imagegen",
+  "path": "public/hora-reach.png",
+  "reference": "design/hora-reach-before-expressions.png",
+  "transparent_background": true,
+  "prompt": "Precisely edit ONLY Hora's FACIAL EXPRESSIONS in this existing animation sprite sheet. Preserve the exact 4-column x 3-row grid, twelve frames, frame positions, body poses, hands, feet, staff, hair, wings, outfit, head shapes, sizes, transparent background, and all non-face artwork. Do not rearrange or redraw the animation choreography. The output must remain the SAME 4:3 aspect ratio and 12 equal square cells with alpha.\n\nFrames are numbered left-to-right then top-to-bottom; do NOT print numbers.\nFrames 1–4 (TOP ROW): preserve her existing cheerful/neutral preparation expressions.\nFrames 5–6 (MIDDLE ROW, first two cells): transition into concentration. Close her open smiling mouth into a small pressed-lip line and lower her eyebrows slightly.\nFrames 7–8 (MIDDLE ROW, last two cells) and frame 9 (BOTTOM ROW, first cell), as she stretches on tiptoes to hook the paper: visibly furrowed eyebrows, brows drawn inward and downward at the center, eyes open looking toward the crook, lips tightly pressed into a small closed horizontal mouth. Cute determination and effort, not anger, not an open smile.\nFrame 10 (BOTTOM ROW, second cell): transition into straining as she begins to pull. Eyes starting to squeeze shut, brows tense, lips still pressed.\nFrames 11–12 (BOTTOM ROW, last two cells), as she pulls hard: unmistakable cute >_< expression DRAWN AS HER FACE: viewer-left eye squeezed into a right-pointing angular chevron >, viewer-right eye squeezed into a left-pointing angular chevron <, small closed flat horizontal mouth _ between and slightly below them. Both eyes fully shut; no visible iris in these last two frames, no open mouth, no smile. Keep subtle cheek blush. The expression must clearly read >_< at small display size. It is a facial expression, not text floating on the picture.\n\nChange only these eyes, eyebrows and mouths. Keep every frame's head location, staff contact point, pose and registered sprite composition exactly as in the input so the existing website animation continues to work unchanged. No background, no added graphics, no labels or text.",
+  "expressions": {
+    "frames1to4": "Existing cheerful preparation",
+    "frames5to6": "Lips close, concentration begins",
+    "frames7to9": "Furrowed brows and pressed lips while reaching",
+    "frames10to12": "Squeezed chevron eyes and pressed mouth: >_<"
+  }
+}

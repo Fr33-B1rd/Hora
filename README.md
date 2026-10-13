@@ -2,7 +2,9 @@
 
 # Daylight
 
-A personal assistant that works for you between conversations, and shows you what it knows.
+A personal assistant named **Hora** that works for you between conversations, and shows you what it knows.
+
+Hora faces you in a large portrait, with both hands gripping her introduction card, which contains shortcuts that start a conversation. While waiting for an answer she sits with her back to you, typing at an old beige desktop computer. Focus or point at the top-right corner to see her waiting there. On click, a twelve-frame sequence shows her taking out her staff, raising it, standing on tiptoes, catching the fold and bracing to pull; only then does the page turn to a new conversation. The animations respect reduced-motion preferences. Character assets and their generation prompts are recorded in `design/hora-assets.json`.
 
 Daylight is built on [Hermes Agent](https://github.com/NousResearch/hermes-agent) with NVIDIA Nemotron models served by Nebius Token Factory. You talk to it in Telegram or in its own web page; both reach the same agent, with the same memory and the same skills.
 

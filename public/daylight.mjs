@@ -238,14 +238,14 @@ function planCard(turn, journey) {
 
 async function send(text, options = {}) {
   text = text.trim();
-  if (!text || state.sending) return;
+  if (!text || state.sending || turning) return;
   const spoken = options.spoken === true;   // the request was spoken, so the answer is announced aloud too
   state.turns.push({ role: 'user', text });
   state.sending = true; state.working = 'Thinking';
   render();
   const thread = app.querySelector('.thread');
   const status = h('span', { class: 'working' }, h('i'), h('i'), h('i'), h('span', {}, state.working));
-  const pending = h('div', { class: 'turn assistant fresh thinking', 'aria-live': 'polite' }, h('span', { class: 'avatar' }, h('img', { src: '/character-head.webp', alt: '', width: '46', height: '46' })), status);
+  const pending = h('div', { class: 'turn assistant fresh thinking', 'aria-live': 'polite' }, h('span', { class: 'hora-typing', 'aria-hidden': 'true' }), status);
   thread.append(pending); thread.scrollTop = thread.scrollHeight;
   const started = performance.now(), sentAt = Date.now(), steps = [];
   let reply = '', lastTool = '';
@@ -297,11 +297,10 @@ function cycleLight() {
 }
 function dayPanel(settled = false) {
   const jobs = activeJobs(), face = dial({ jobs }), here = stockholm(), sun = sunTimes(here.dayOfYear, here.offset);
-  face.classList.add('around'); if (settled) face.classList.add('settled');
+  if (settled) face.classList.add('settled');
   const clock = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   return h('div', { class: 'day' },
-    // She stands in front of the dial: the ring of the day is her halo.
-    h('div', { class: 'stage' + (settled ? ' settled' : '') }, face, h('img', { class: 'character', src: '/character.webp', alt: 'Daylight’s guardian: a small winged girl with the eye of the sun above her head, arms open in welcome', width: '817', height: '880', draggable: 'false' })),
+    h('div', { class: 'stage hora-clock' + (settled ? ' settled' : '') }, face),
     h('p', { class: 'day-caption' }, h('b', {}, clock(here.minutes)), `${here.label} · Stockholm`, sun.rise != null ? h('br') : null, sun.rise != null ? `sunrise ${clock(sun.rise)} · sunset ${clock(sun.set)}` : null),
     jobs.length ? h('ul', { class: 'legend', 'aria-label': 'What runs for you today' }, jobs.map(job => h('li', {}, h('b', {}, job.title), ' ', job.schedule.replace(/^Every day at /, '').toLowerCase()))) : null);
 }
@@ -388,11 +387,13 @@ function chatView() {
     oninput() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px'; },
   });
   const thread = h('div', { class: 'thread' },
-    state.turns.length ? state.turns.map(turnElement) : h('div', { class: 'welcome' }, h('div', { class: 'welcome-words' },
-      h('p', { class: 'kicker' }, greeting(stockholm().minutes)),
-      h('h2', {}, 'It keeps working ', h('em', {}, 'while you’re away.')),
-      h('p', {}, 'I remember what you tell me, watch job postings, grocery offers and research topics while you are away, keep your calendar in view, and can plan a day out in Stockholm.'),
-      h('div', { class: 'ideas' }, ideas.map(([kind, text]) => h('button', { type: 'button', onclick: () => send(text) }, h('small', {}, kind), text)))),
+    state.turns.length ? state.turns.map(turnElement) : h('div', { class: 'welcome' }, h('section', { class: 'hora-welcome', 'aria-label': 'Meet Hora' },
+      h('div', { class: 'hora-peek', 'aria-hidden': 'true' }, h('img', { src: '/hora-peek.webp', alt: '', width: '1254', height: '1254', draggable: 'false' })),
+      h('div', { class: 'hora-intro' },
+        h('p', { class: 'kicker' }, greeting(stockholm().minutes)),
+        h('h2', {}, 'Hi, I’m ', h('em', {}, 'Hora.')),
+        h('p', {}, 'Your little guardian of everyday plans. Tell me what you have in mind — we’ll work it out together. I can remember your preferences, plan a day out, and keep an eye on the things you care about.'),
+        h('div', { class: 'ideas', 'aria-label': 'Start a conversation' }, ideas.map(([kind, text]) => h('button', { type: 'button', onclick: () => send(text) }, h('small', {}, kind), text))))),
       dayPanel()));
   const view = [
     state.turns.length ? pageCurl() : null,
@@ -408,24 +409,38 @@ function chatView() {
 function pageCurl() {
   return h('button', { class: 'curl', type: 'button', 'aria-label': 'New conversation', disabled: state.sending, onclick: turnPage },
     h('span', { class: 'curl-under', 'aria-hidden': 'true' }, h('b', {}, 'New'), h('b', {}, 'conversation')),
-    h('span', { class: 'curl-flap', 'aria-hidden': 'true' }));
+    h('span', { class: 'curl-flap', 'aria-hidden': 'true' }), horaPuller());
+}
+function horaPuller() {
+  return h('span', { class: 'hora-puller', 'aria-hidden': 'true' }, h('span', { class: 'hora-reach-sprite' }));
 }
 let turning = false;
 function turnPage() {
   if (turning || state.sending) return;
   const main = app.querySelector('.main');
+  player.stop();
   if (!main || matchMedia('(prefers-reduced-motion: reduce)').matches) return newConversation();
-  turning = true; player.stop();
+  turning = true; app.inert = true;
   // The turning page is drawn over the main column and outlives the redraw underneath it.
   const box = main.getBoundingClientRect();
   const sheet = h('div', { class: 'pageturn', 'aria-hidden': 'true', style: `left:${box.left}px;top:${box.top}px;width:${box.width}px;height:${box.height}px` },
-    h('span', { class: 'curl-under' }), h('span', { class: 'curl-flap' }));
+    h('span', { class: 'curl-under' }), h('span', { class: 'curl-flap' }), horaPuller());
+  sheet.style.setProperty('--start', (main.querySelector('.curl')?.getBoundingClientRect().width || 46) + 'px');
+  const reachMs = 1320;
+  sheet.style.setProperty('--reach-duration', reachMs + 'ms');
   document.body.append(sheet);
   sheet.style.setProperty('--full', Math.ceil((box.width + box.height) * 1.02) + 'px');
-  requestAnimationFrame(() => requestAnimationFrame(() => sheet.classList.add('go')));
-  const finish = () => { if (!turning) return; turning = false; newConversation(); sheet.classList.add('done'); setTimeout(() => sheet.remove(), 420); };
-  sheet.addEventListener('transitionend', event => { if (event.propertyName === 'width' && event.target === sheet.firstChild) finish(); });
-  setTimeout(finish, 1100);   // in case the browser never reports the end of the animation
+  // Play the twelve poses first: take out the staff, extend, rise onto toes,
+  // catch, then brace. Only the completed catch is allowed to move the page.
+  let caught = false;
+  const pull = () => { if (caught || finished) return; caught = true; sheet.classList.add('go'); };
+  const sprite = sheet.querySelector('.hora-reach-sprite');
+  sprite.addEventListener('animationend', event => { if (event.animationName === 'hora-reach') pull(); });
+  const pullTimer = setTimeout(pull, reachMs + 180);
+  let finished = false;
+  const finish = () => { if (finished) return; finished = true; clearTimeout(pullTimer); clearTimeout(finishTimer); turning = false; app.inert = false; newConversation(); sheet.classList.add('done'); setTimeout(() => sheet.remove(), 420); };
+  sheet.addEventListener('transitionend', event => { if (caught && event.propertyName === 'width' && event.target === sheet.firstChild) finish(); });
+  const finishTimer = setTimeout(finish, reachMs + 1400);   // also release the UI if animation events are skipped
 }
 function newConversation() {
   state.turns = []; shownTurns = 0; state.session = newSession();
@@ -611,7 +626,7 @@ function render() {
   if (enter) entering = false;
   app.replaceChildren(h('div', { class: 'shell' + (state.sending ? ' busy' : '') },
     h('aside', { class: 'side' },
-      h('div', { class: 'brand' }, mark(), 'Daylight'),
+      h('div', { class: 'brand', title: 'Hora · Daylight' }, mark(), 'Hora'),
       h('nav', { class: 'nav', 'aria-label': 'Sections' }, tab('chat', 'Chat'), tab('profile', 'What I know')),
       statusBox(),
       h('button', { class: 'theme', type: 'button', title: 'The page is lit by the real sun over Stockholm unless you choose otherwise', onclick: cycleLight }, 'Light: ', h('b', {}, { auto: 'the sun', light: 'day', dark: 'night' }[lightChoice])),
