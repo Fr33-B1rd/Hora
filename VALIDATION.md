@@ -796,3 +796,15 @@ Asked in a group, “paste today's research digest here” had no good answer: t
 Tests (`tests/digest-tools.test.mjs`): only the delivered message is taken from a saved run; today's digest comes back unchanged; quiet runs are skipped and named; a digest that never ran or is not set up is said plainly. 131 Node tests pass.
 
 Live check with the development assistant and a real saved digest placed as today's run, three phrasings (“Paste today's research digest here.”, “Can you post this morning's papers in the chat?”, “What did today's research digest say?”): every time it used the tool and reproduced all 8 paper links, adding none; 7–10 s each. Not checked in a real Telegram group.
+
+
+## 2026-10-14 — She answers as Hora, and “what can you do” is about her
+
+Two faults reported by the user: asked who it is, the assistant said Hermes Agent; asked what it can do, it listed Hermes's general abilities. Cause of the first: Hermes's default persona file (`SOUL.md`) opens with “You are Hermes Agent, built by Nous Research.”, and the Daylight block naming her Hora was appended after it, so the first identity won.
+
+- `hermes/install.sh` now puts the Daylight block first in `SOUL.md` and changes only Hermes's opening sentence to “You are Hora, a personal assistant built on Hermes Agent by Nous Research.”, keeping its style advice. The original file is kept once as `SOUL.md.before-daylight`. Re-running the installer is safe.
+- A new tool, `about_hora` (`mcp/about-tools.mjs`), answers “who are you / what can you do / how do I start” from what is actually set up: seven abilities, an example of what to say for each, and for anything not ready the one step that sets it up (upload a CV on the web page, name a research topic, connect the calendar). In a group it leaves out the owner's own settings. The standing instructions say to use it, and not to list general tools (files, code, browsing, the terminal) unless asked what else she can do.
+
+Live check with the development assistant: “Who are you?” twice → “I'm Hora, a personal assistant in Daylight that keeps working while you are away. Would you like to hear what I can do?”; “What can you do?” twice → the seven abilities with an example each and the two missing steps (CV, research topic), no general tools; “How do I get started?”, after a tightening of the answer instructions, twice → two numbered steps and one line saying everything else works already. Never named Hermes. 5–7 s each. Not checked in Telegram or on the VM.
+
+Tests: 134 Node, 23 Python, all passing.

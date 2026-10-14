@@ -21,11 +21,16 @@ done
 # Standing instructions: which skill answers what, and how to write for a chat
 # app. Kept as a marked block appended to Hermes's own SOUL.md, replaced on re-install.
 soul="$home/SOUL.md"; touch "$soul"
+[ -f "$soul.before-daylight" ] || cp "$soul" "$soul.before-daylight"   # Hermes's own text, kept once
 python3 - "$soul" "$here/SOUL.daylight.md" <<'PY'
 import re, sys
 soul, block = open(sys.argv[1], encoding="utf-8").read(), open(sys.argv[2], encoding="utf-8").read().strip()
-soul = re.sub(r"\n*<!-- daylight:start -->.*?<!-- daylight:end -->\n*", "\n", soul, flags=re.S).rstrip()
-open(sys.argv[1], "w", encoding="utf-8").write(soul + "\n\n<!-- daylight:start -->\n" + block + "\n<!-- daylight:end -->\n")
+soul = re.sub(r"\n*<!-- daylight:start -->.*?<!-- daylight:end -->\n*", "\n", soul, flags=re.S).strip()
+# Hermes's default persona opens by naming the agent; as the first identity the model reads,
+# it outweighs the Daylight block below. Only that sentence is changed; its style advice stays.
+soul = re.sub(r"^You are (?:Hermes Agent|Hora)[^.]*\.\s*", "You are Hora, a personal assistant built on Hermes Agent by Nous Research. ", soul, count=1)
+# The Daylight block goes first, so that her name and abilities are the first thing read.
+open(sys.argv[1], "w", encoding="utf-8").write("<!-- daylight:start -->\n" + block + "\n<!-- daylight:end -->\n\n" + soul + "\n")
 PY
 echo "instructions: Daylight block written to SOUL.md"
 
