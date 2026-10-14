@@ -17,6 +17,7 @@ import {everydayTools,everydayHandlers} from './everyday-tools.mjs';
 import {jobTools,jobHandlers} from './job-tools.mjs';
 import {calendarTools,calendarHandlers,eventsOf,open as openCalendar} from './calendar-tools.mjs';
 import {todoTools,todoHandlers} from './todo-tools.mjs';
+import {digestTools,digestHandlers} from './digest-tools.mjs';
 
 const clockText={type:'string',pattern:'^([01]\\d|2[0-4]):[0-5]\\d$',description:'24-hour HH:MM, Stockholm time'};
 const plain='Plain text for a chat app: no markdown, no bold, no headings, no tables, no bullet lists.';
@@ -42,7 +43,8 @@ export const tools=[
   ...everydayTools,
   ...jobTools,
   ...calendarTools,
-  ...todoTools
+  ...todoTools,
+  ...digestTools
 ];
 
 const services=()=>{
@@ -127,7 +129,7 @@ export async function findEvents({date,days=1,near='Stockholm Centralstation'},m
   return {date,days,source:'Visit Stockholm (curated)',events:r.events.map(e=>({title:e.title,venue:e.venue,sessions:e.occurrences?.length?e.occurrences:'no session times published',description:(e.description||'').slice(0,300),link:e.url})),
     howToAnswer:[plain,'At most three events. For each: the title, the venue and its session time on that date in one sentence, then the link on its own line. If an event has no published session, say so.','This is a curated list, not everything that is on; ticket availability is unknown.']};
 }
-const handlers={...everydayHandlers,...jobHandlers,...calendarHandlers,...todoHandlers,plan_day:args=>planDay(args,services,persistPlan),find_events:findEvents,local_news:async()=>{const r=await localNews();return {source:'SVT Stockholm',items:r.cards.map(c=>({title:c.translatedTitle||c.title,original:c.title,published:c.publishedAt,link:c.url}))};}};
+const handlers={...everydayHandlers,...jobHandlers,...calendarHandlers,...todoHandlers,...digestHandlers,plan_day:args=>planDay(args,services,persistPlan),find_events:findEvents,local_news:async()=>{const r=await localNews();return {source:'SVT Stockholm',items:r.cards.map(c=>({title:c.translatedTitle||c.title,original:c.title,published:c.publishedAt,link:c.url}))};}};
 
 // Minimal JSON-RPC 2.0 over newline-delimited stdio, as MCP's stdio transport specifies.
 export async function respond(message,run=handlers){

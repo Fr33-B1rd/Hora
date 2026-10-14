@@ -16,7 +16,7 @@ test('the tool server speaks the protocol: initialize, list tools, call, unknown
   assert.equal(init.result.protocolVersion,'2025-06-18');assert.ok(init.result.capabilities.tools);assert.match(init.result.instructions,/Today is \d{4}-\d\d-\d\d/);
   assert.equal(await respond({jsonrpc:'2.0',method:'notifications/initialized'}),null);
   const listed=(await respond({jsonrpc:'2.0',id:2,method:'tools/list'})).result.tools;
-  assert.deepEqual(listed.map(t=>t.name),['plan_day','find_events','local_news','grocery_offers','food_preference','research_topics','job_search_profile','job_matches','job_application_advice','calendar_day','calendar_propose','calendar_confirm','todo']);
+  assert.deepEqual(listed.map(t=>t.name),['plan_day','find_events','local_news','grocery_offers','food_preference','research_topics','job_search_profile','job_matches','job_application_advice','calendar_day','calendar_propose','calendar_confirm','todo','latest_digest']);
   assert.ok(!listed.some(t=>/write|book|pay|buy|invite/i.test(t.name)));assert.deepEqual(tools[0].inputSchema.required,['date','from','activities','userWords']);
   const called=await respond({jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'echo',arguments:{a:1}}},{echo:async a=>({got:a})});
   assert.deepEqual(JSON.parse(called.result.content[0].text),{got:{a:1}});

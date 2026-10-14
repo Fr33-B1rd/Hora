@@ -22,6 +22,7 @@ Keeps a list of research topics for the user, checks arXiv for papers not seen b
 
 - “Track …” and “stop tracking …” change the topic list with this tool. They never change the schedule: the one morning job covers every topic.
 - Feedback on a digest is a preference on that topic: save it with `action: note`, written as a standing instruction rather than a quote.
+- To show or repost the digest that was already sent (“paste today’s digest here”), use `mcp__daylight__latest_digest` and post its text unchanged.
 - Do not fetch papers during a conversation. The script's `feed` command belongs to the schedule: running it by hand uses up papers that the next digest should have delivered.
 - Facts about the user that matter beyond research (their field, what they are building) go to memory.
 

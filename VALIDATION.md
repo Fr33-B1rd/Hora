@@ -785,3 +785,14 @@ The Hora work above was made in this folder by another tool and left uncommitted
 Checked in the browser on the local server with the WebP copies: the opening card with Hora gripping it and the dial beside it; the typing sprite in a pending bubble; a real click on the corner, during which the page was inert and the reach sheet was showing, and after which the conversation was empty, the opening card was back, the turning sheet was gone and the page was usable again. Title and name read “Hora · Daylight” and “Hora”. No console errors.
 
 Not checked here: the motion as motion (the preview throttles animation; the other tool's notes record all twelve frames observed), phone width, and anything with the assistant running. The other tool also changed the first sentence of the locally installed Hermes persona (`~/.hermes/SOUL.md` in WSL) and left a copy of the earlier text at `data/SOUL.before-hora.md`; the VM's persona is unchanged until `hermes/install.sh` is run there.
+
+
+## 2026-10-14 — Reposting a digest on request
+
+Asked in a group, “paste today's research digest here” had no good answer: the assistant has no way to fetch papers in conversation (by design, since fetching marks papers as sent), so it would either decline or improvise a search outside Daylight. Rather than add on-demand fetching, the user proposed reposting the digest already sent.
+
+`mcp/digest-tools.mjs` adds `latest_digest` (research, groceries or jobs). Hermes keeps every scheduled run under `cron/output/<job id>/`, with the delivered message after “## Response”; the tool returns the newest real one word for word, skipping runs that found nothing ([SILENT]) and saying so, and says when the newest digest is from an earlier day. Nothing is fetched and nothing is marked. Standing instructions: use it for “show/repost the digest”, post the text unchanged, and in a group only the research digest (the other two describe the owner's food and job search).
+
+Tests (`tests/digest-tools.test.mjs`): only the delivered message is taken from a saved run; today's digest comes back unchanged; quiet runs are skipped and named; a digest that never ran or is not set up is said plainly. 131 Node tests pass.
+
+Live check with the development assistant and a real saved digest placed as today's run, three phrasings (“Paste today's research digest here.”, “Can you post this morning's papers in the chat?”, “What did today's research digest say?”): every time it used the tool and reproduced all 8 paper links, adding none; 7–10 s each. Not checked in a real Telegram group.
