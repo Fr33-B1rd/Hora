@@ -129,6 +129,19 @@ class ResearchTracker(unittest.TestCase):
     def test_feed_without_topics_does_not_wake_the_agent(self):
         self.assertEqual(self.run_cli("feed"), {"wakeAgent": False})
 
+    def test_the_model_key_is_found_without_the_environment_as_the_scheduler_runs_it(self):
+        # This path crashed on the server (a missing helper) and stopped the morning digest.
+        for name in ("NEBIUS_API_KEY", "NEBIUS_BASE_URL"):
+            os.environ.pop(name, None)
+        self.assertEqual(research.model_settings(), (None, research.TOKEN_FACTORY))
+        env_file = os.path.join(self.home.name, "project.env")
+        with open(env_file, "w", encoding="utf-8") as handle:
+            handle.write('NEBIUS_API_KEY="from-file"\n')
+        os.makedirs(os.path.join(self.home.name, "daylight"), exist_ok=True)
+        with open(os.path.join(self.home.name, "daylight", "config.json"), "w", encoding="utf-8") as handle:
+            json.dump({"envFile": env_file}, handle)
+        self.assertEqual(research.model_settings()[0], "from-file")
+
 
 if __name__ == "__main__":
     unittest.main()

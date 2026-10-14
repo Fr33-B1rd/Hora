@@ -808,3 +808,14 @@ Two faults reported by the user: asked who it is, the assistant said Hermes Agen
 Live check with the development assistant: “Who are you?” twice → “I'm Hora, a personal assistant in Daylight that keeps working while you are away. Would you like to hear what I can do?”; “What can you do?” twice → the seven abilities with an example each and the two missing steps (CV, research topic), no general tools; “How do I get started?”, after a tightening of the answer instructions, twice → two numbered steps and one line saying everything else works already. Never named Hermes. 5–7 s each. Not checked in Telegram or on the VM.
 
 Tests: 134 Node, 23 Python, all passing.
+
+
+## 2026-10-14 — Fault: the research digest crashed on the server
+
+Reported by the user: asked to repost the digest, the bot gave the one from 2026-10-13 and passed on Hermes's failure notice, “[CRON_FAILURE] Script error: NameError: name 'home' is not defined in daylight_research.py line 114”.
+
+Cause (mine, from 2026-10-10): when the job scripts were taught to find the small model's key through the project's `.env`, the helper was copied into the research script, which lacked the `home()` function that the grocery script has. The path is only taken when the key is not in the script's environment, which is the case for scheduled runs on the VM, so the morning research digest failed before fetching anything; no papers were marked as sent. The tests covered this path for the grocery script only.
+
+Fixed: `home()` added to `daylight_research.py`, and a test for the research script's key lookup with no key in the environment (24 Python tests pass). Run the way the scheduler runs it, with no key in the environment and `--dry-run`, the script now reaches arXiv and returns today's papers.
+
+Also: `latest_digest` no longer treats a failed run as a digest. It skips runs carrying `[CRON_FAILURE]`, returns the last good digest, and has the assistant say in one line that the latest run failed, without quoting the error; if no good run exists it says so. 135 Node tests pass.

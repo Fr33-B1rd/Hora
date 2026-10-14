@@ -30,17 +30,20 @@ export async function latestDigest({digest},{home=hermesHome(),today=dateInStock
   const job=(Array.isArray(jobs)?jobs:jobs.jobs||[]).find(j=>j.name===jobNames[digest]);
   if(!job)return {status:'no_such_job',howToAnswer:[plain,`Say the ${titles[digest]} is not set up.`]};
   let runs=[];try{runs=(await readdir(join(home,'cron','output',job.id))).filter(runTime).sort().reverse();}catch{/* never run */}
-  // Runs that found nothing new end in [SILENT]: they are skipped, but the newest one is noted.
-  let quietSince=null;
+  // Runs that found nothing new end in [SILENT], and runs that broke carry Hermes's [CRON_FAILURE]
+  // notice: neither is a digest. They are skipped, and the newest of each is reported.
+  let quietSince=null,failed=null;
   for(const name of runs){
     const text=deliveredText(await readFile(join(home,'cron','output',job.id,name),'utf8'));
     if(!text)continue;
     if(/^\[SILENT\]$/.test(text)){quietSince??=runTime(name);continue;}
+    if(/\[CRON_FAILURE\]/.test(text)){failed??={...runTime(name),reason:text.replace(/^.*?\[CRON_FAILURE\]\s*/s,'').split('\n')[0].slice(0,160)};continue;}
     const when=runTime(name),fresh=when.date===today;
-    return {status:'found',digest,deliveredOn:when.date,at:when.time,today:fresh,...(quietSince&&!fresh?{nothingNewSince:quietSince.date}:{}),text,
+    return {status:'found',digest,deliveredOn:when.date,at:when.time,today:fresh,...(quietSince&&!fresh?{nothingNewSince:quietSince.date}:{}),...(failed?{lastRunFailed:failed}:{}),text,
       howToAnswer:[plain,'Post the text exactly as it is: do not add, drop, reorder or re-describe anything in it, and keep every link.',
-        fresh?'You may add one short line before it, such as “Here is this morning’s research digest.”':`Before it, say in one line that this is the digest from ${when.date}${quietSince?', and that the runs since then found nothing new':', and that there has been none since'}.`]};
+        fresh?'You may add one short line before it, such as “Here is this morning’s research digest.”':failed?`Before it, say in one line that the latest run, on ${failed.date}, failed with a technical fault, so this is the digest from ${when.date}. Do not quote the fault.`:`Before it, say in one line that this is the digest from ${when.date}${quietSince?', and that the runs since then found nothing new':', and that there has been none since'}.`]};
   }
+  if(failed)return {status:'last_run_failed',lastRunFailed:failed,howToAnswer:[plain,`Say the ${titles[digest]} could not be made on ${failed.date} because of a technical fault, and there is no earlier one to show. Do not quote the fault.`]};
   return {status:'none_yet',...(quietSince?{nothingNewOn:quietSince.date}:{}),howToAnswer:[plain,quietSince?`Say the ${titles[digest]} has run but found nothing new to send, most recently on ${quietSince.date}.`:`Say there is no ${titles[digest]} yet: it has not run since it was set up.`]};
 }
 

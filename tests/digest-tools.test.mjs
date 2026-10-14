@@ -46,6 +46,19 @@ test('when the latest runs found nothing, the last real digest is given with its
   finally{await rm(quiet,{recursive:true,force:true});}
 });
 
+test('a run that broke is never posted as the digest: the last good one is, with the failure said once',async()=>{
+  const dir=await home({'2026-10-13_08-00-10.md':run(digest),'2026-10-14_08-00-05.md':run("[CRON_FAILURE]Script error: NameError: name 'home' is not defined in daylight_research.py line 114.")});
+  try{
+    const r=await latestDigest({digest:'research'},{home:dir,today:'2026-10-14'});
+    assert.equal(r.status,'found');assert.equal(r.text,digest);assert.equal(r.deliveredOn,'2026-10-13');
+    assert.equal(r.lastRunFailed.date,'2026-10-14');assert.match(r.lastRunFailed.reason,/NameError/);
+    assert.match(r.howToAnswer.join(' '),/failed with a technical fault, so this is the digest from 2026-10-13\. Do not quote the fault/);
+    assert.doesNotMatch(r.text,/CRON_FAILURE/);
+  }finally{await rm(dir,{recursive:true,force:true});}
+  const broken=await home({'2026-10-14_08-00-05.md':run('[CRON_FAILURE]Script error: boom')});
+  try{assert.equal((await latestDigest({digest:'research'},{home:broken,today:'2026-10-14'})).status,'last_run_failed');}finally{await rm(broken,{recursive:true,force:true});}
+});
+
 test('a digest that has never run, or is not set up, is said plainly',async()=>{
   const dir=await home();
   try{

@@ -37,9 +37,12 @@ FAST_MODEL = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"  # screening many abstracts
 TOKEN_FACTORY = "https://api.tokenfactory.us-central1.nebius.com/v1"
 
 
+def home():
+    return Path(os.environ.get("HERMES_HOME") or Path.home() / ".hermes")
+
+
 def state_path():
-    home = Path(os.environ.get("HERMES_HOME") or Path.home() / ".hermes")
-    return home / "daylight" / "research.json"
+    return home() / "daylight" / "research.json"
 
 
 def load():
