@@ -109,3 +109,24 @@ test('a plan names what is already in the calendar that day so the reply can say
   const free=await planDay({date,from:'Slussen',userWords:'a museum',activities:[{name:'Visit a museum'}]},()=>({...make(),calendarDay:async d=>({date:d,connected:false,busy:[],own:[]})}));
   assert.deepEqual(free.alreadyInCalendar,[]);assert.doesNotMatch(free.howToAnswer.join(' '),/fitted around/);
 });
+
+test('in a group the owner’s day stays private, a meeting may be proposed without naming what it clashes with, and only the owner’s own yes writes it',async()=>{
+  const w=world({events:[event('a','Therapy',1020,1080)]});
+  const group=(id,said)=>({source:'telegram',group:true,chatId:'-555',speaker:{name:id==='111'?'Z':'H',id},said,owners:['111']});
+  try{
+    const day=await calendarDay({date},w.services,group('222','what is on'));
+    assert.equal(day.status,'private');assert.doesNotMatch(JSON.stringify(day),/Therapy/);
+    const p=await calendarPropose({title:'Hora project meeting',date,start:'17:00',end:'18:00',location:'H’s place'},w.services,T0,group('222','yes'));
+    assert.equal(p.status,'awaiting_confirmation');assert.equal(p.ownerIsBusyThen,true);
+    assert.doesNotMatch(JSON.stringify(p),/Therapy/);assert.match(p.howToAnswer.join(' '),/never what it is/);
+    const notOwner=await calendarConfirm({proposalId:p.proposalId,userSaid:'yes'},w.services,T0+60000,group('222','yes'));
+    assert.equal(notOwner.status,'owner_only');assert.equal(writes(w),0);
+    const unknown=await calendarConfirm({proposalId:p.proposalId,userSaid:'yes'},w.services,T0+60000,{...group(null,'yes'),speaker:{name:null,id:null}});
+    assert.equal(unknown.status,'owner_only');
+    // The model claimed a yes, but the owner's recorded message was not one.
+    const hedged=await calendarConfirm({proposalId:p.proposalId,userSaid:'yes'},w.services,T0+60000,group('111','yes but at 18'));
+    assert.equal(hedged.status,'not_confirmed');assert.equal(writes(w),0);
+    const owner=await calendarConfirm({proposalId:p.proposalId,userSaid:'yes'},w.services,T0+60000,group('111','yes'));
+    assert.equal(owner.status,'added');assert.equal(writes(w),1);
+  }finally{w.close();}
+});

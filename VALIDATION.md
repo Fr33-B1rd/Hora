@@ -819,3 +819,17 @@ Cause (mine, from 2026-10-10): when the job scripts were taught to find the smal
 Fixed: `home()` added to `daylight_research.py`, and a test for the research script's key lookup with no key in the environment (24 Python tests pass). Run the way the scheduler runs it, with no key in the environment and `--dry-run`, the script now reaches arXiv and returns today's papers.
 
 Also: `latest_digest` no longer treats a failed run as a digest. It skips runs carrying `[CRON_FAILURE]`, returns the last good digest, and has the assistant say in one line that the latest run failed, without quoting the error; if no good run exists it says so. 135 Node tests pass.
+
+
+## 2026-10-18 — Fault: “summarise what we just discussed” summarised the bot's own past work
+
+Reported by the user from the group test: two people discussed a delayed schedule, three features in order of importance, a task for Eric, and a meeting on Monday at 17:00; asked to summarise, the bot listed a research brief, news, job matches and a water reminder instead.
+
+Cause: Hermes keeps the group messages the bot was not addressed in (`observed` rows in `state.db`) and passes them to the model in a block before the request, but it also replays every earlier addressed turn in that group (digests, searches, reminders) as the conversation itself. Told to summarise “what we just discussed”, the model summarised that conversation. Nothing in Daylight picked out the stretch that was meant.
+
+Fixed:
+- New tool `group_conversation` (`mcp/group-tools.mjs`) reads the group's observed messages straight from Hermes's `state.db` (read-only) and returns only the latest stretch, back to a silence of three hours, or a named number of hours, with who said what and when, oldest first. Earlier requests to the bot and the bot's replies are not in it. Its answer instructions ask for a short summary (decided, open, who does what) and then one closing offer of follow-ups, adding nothing yet: the tasks as a numbered list for the group's shared to-do list, and a meeting with its exact date (today's date and weekday are given) for the owner's calendar.
+- `lib/hermes-chat.mjs` reads from the same record which chat a tool is called from and who asked: Hermes writes the user's message and the tool call before the tool runs. The calendar tools use it. In a group, `calendar_day` refuses (the owner's calendar is private); `calendar_propose` may prepare a meeting the group agreed on, and says only that the owner is busy then, never what with; `calendar_confirm` writes only when the recorded speaker is the owner (`TELEGRAM_ALLOWED_USERS`), and in Telegram it checks the recorded message, not the model's quotation of it, for a plain yes.
+- The group rules in `SOUL.daylight.md` now send summaries to the tool and allow that one calendar step; `about_hora` lists group chats as an ability.
+
+Tests: 143 Node, all passing; the new ones build a small `state.db` with the user's test conversation, a duplicated row, a session rollover, an earlier morning stretch and a private chat. The record lookup was also run against the real local `state.db` with Hermes's Node 26. Not yet checked in Telegram.

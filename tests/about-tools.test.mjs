@@ -22,7 +22,7 @@ test('a fresh install says who she is and, for each thing not set up, the one st
   const dir=await home({'cron/jobs.json':{jobs}});
   try{
     const r=await aboutHora({home:dir,calendarConnected:()=>false,page:'https://hora.example'});
-    assert.equal(r.name,'Hora');assert.equal(r.abilities.length,7);
+    assert.equal(r.name,'Hora');assert.equal(r.abilities.length,8);
     assert.match(by(r,'Job watch').setUp,/upload your CV on the web page \(https:\/\/hora\.example/);assert.equal(by(r,'Job watch').ready,false);
     assert.match(by(r,'Research digest').setUp,/Track new papers on/);assert.match(by(r,'Calendar').setUp,/connect Google Calendar/);
     assert.equal(by(r,'Day planner').ready,true);assert.ok(r.abilities.every(a=>a.try.length));

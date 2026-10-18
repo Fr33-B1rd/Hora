@@ -35,6 +35,8 @@ export async function aboutHora({home=hermesHome(),calendarConnected=()=>{try{re
       try:['Plan Saturday: a museum and sushi, starting from Slussen'],ready:true},
     {name:'Lists and reminders',does:'keeps a to-do list, also one shared by a group, and reminds you on a date',
       try:['Add “renew passport” to my list','Remind me on Friday at 9 to call the dentist'],ready:true},
+    {name:'Group chats',does:'in a group, summarises what was just discussed and offers to put its tasks on the shared list and its meeting in your calendar',
+      try:['@Hora summarise what we just discussed'],ready:true},
     {name:'Memory',does:'remembers what you tell it, and shows all of it on the web page so you can correct it',
       try:['Remember that I’m vegetarian','What do you know about me?'],ready:true},
   ];
