@@ -6,3 +6,6 @@ data/
 models/
 __pycache__/
 *.import
+
+# The hackathon rules, kept locally for reference
+rules.txt

@@ -11,7 +11,7 @@ const input={date,start:'09:00',deadline:'20:00',activities,budgetMode:'unlimite
 test('generic discovery retains query specificity and accepts unrelated categories',async()=>{
   const calls=[];await discoverJourney(input,{search:async(query,type)=>{calls.push({query,type});return [origin];}});
   assert.ok(calls.some(x=>x.query==='Chinese restaurant'&&x.type===null));assert.ok(calls.some(x=>x.query==='museum'));
-  const defs=activityDefinitions([{id:'books',label:'逛书店',query:'independent bookstore',duration:45,allowance:100},{id:'coffee',label:'咖啡',query:'specialty coffee',duration:30,allowance:60}]);assert.equal(defs.length,2);
+  const defs=activityDefinitions([{id:'books',label:'Browse bookshops',query:'independent bookstore',duration:45,allowance:100},{id:'coffee',label:'Coffee',query:'specialty coffee',duration:30,allowance:60}]);assert.equal(defs.length,2);
   assert.throws(()=>activityDefinitions([{...activities[0],id:'__proto__'}]),/ID/);
   assert.throws(()=>precedenceRules([{before:'museum',after:'chinese'},{before:'chinese',after:'museum'}],['museum','chinese']),/conflicts/);
 });

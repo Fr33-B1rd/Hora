@@ -12,7 +12,7 @@ test('source meeting instructions match localized venue only with coordinate cor
  assert.equal(eventVenueMatch({...place,name:'Starts by Östermalm Saluhall',location:{latitude:60,longitude:18}},event),null);
 });
 test('venue receipt survives batch selection, sparse origin clarification, source refresh and scheduler',async()=>{
- const origin={id:'station',name:'Fridhemsplan',location:{latitude:59.26,longitude:18.01},periods:null};let localReads=0;
+ const origin={id:'station',name:'Fridhemsplan',location:{latitude:59.33,longitude:18.03},periods:null};let localReads=0;
  const svc={evidence:[event],eventDetails:async()=>event,maps:{search:async q=>q.includes('Fridhemsplan')?[origin]:[{...place,aliases:[]}],details:async(id,lang)=>{assert.equal(id,'market');assert.equal(lang,'sv');localReads++;return {...place,name:'Östermalms saluhall'};},route:async()=>({minutes:20,walking:5,mode:'transit'})},calendarDay:async()=>({connected:true,busy:[],own:[]}),getChecks:()=>({revision:0,items:{}}),saveJourney:()=> 'fixture'};
  const env=createAgentEnvironment({},svc);
  await env.handlers.update_trip({patch:{date:'2026-10-10',origin:'Fridhemsplan',start:'12:00',deadline:'22:00',timeMode:'flexible',budgetMode:'flexible',activities:[{id:'walk',label:'City Walk: Hidden Lives and Dangerous Connections — Women in the Stockholm of Spies (in Swedish)',query:'tour',requiredNames:[],duration:60,allowance:null,eventRef:event.ref}]}});
@@ -34,9 +34,9 @@ test('non-event named venue guard remains strict',async()=>{
  await assert.rejects(env.handlers.select_candidates({activityId:'visit',placeIds:['market']}),/does not meet/);
 });
 test('mixed-language origin search skips an unrelated first-ranked station',async()=>{
- const wrong={...place,id:'central',name:'T-Centralen'},right={...place,id:'hagsatra',name:'Fridhemsplan'};
+ const wrong={...place,id:'central',name:'T-Centralen'},right={...place,id:'fridhemsplan',name:'Fridhemsplan'};
  const env=createAgentEnvironment({}, {maps:{search:async q=>q.includes('Fridhemsplan')?[wrong,right]:[place]}});
- await env.handlers.update_trip({patch:{origin:'Fridhemsplan地铁站',activities:[{id:'shop',label:'逛市场',query:'market',requiredNames:[],duration:30,allowance:null}]}});
+ await env.handlers.update_trip({patch:{origin:'Fridhemsplan metro station',activities:[{id:'shop',label:'Browse a market',query:'market',requiredNames:[],duration:30,allowance:null}]}});
  const prepared=await env.handlers.discover_candidates({});assert.equal(prepared.origin.name,'Fridhemsplan');
  await assert.rejects(env.handlers.select_candidates({activityId:'origin',placeIds:['central']}),/Search rank is not identity evidence/);
 });

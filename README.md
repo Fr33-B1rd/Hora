@@ -15,7 +15,7 @@ What it does today:
 - **Grocery offers.** Every morning it reads the week's offers at Lidl Sverige and sends the ones you would want. Say once that you avoid pork and it stops showing pork.
 - **Day planner.** Ask for a day out in Stockholm and it returns a plan checked against real opening hours and real public-transport times, shown on a map. It can add the plan to your Google Calendar, but only after you have seen the exact changes and confirmed them.
 - **Calendar.** Ask what you have on, or ask it to add an event. It tells you exactly what it would add, names anything it overlaps, and writes only after you answer yes in a separate message. When you plan a day, it tells you what is already there first.
-- **To-do lists and reminders.** “Add renew passport to my list”, “tick that off”, “remind me on Friday at 9”. In a Telegram group it keeps one shared list for everyone and can summarise what was discussed since it joined.
+- **To-do lists and reminders.** “Add renew passport to my list”, “tick that off”, “remind me on Friday at 9”. In a Telegram group it keeps one shared list for everyone. Asked to summarise, it reads what people said to each other, says what was decided and who does what, then offers to put the tasks on the shared list and an agreed meeting in your calendar; only your own yes adds the meeting.
 - **Voice.** Speak to it on the web page. Your speech is turned into text on your own server. What it says back is not the written answer read aloud: a short acknowledgement, then one brief line made for the ear, while the detail stays on screen.
 - **What I know.** A page listing everything it has remembered about you, your CV and job search, the topics and foods it tracks, and the jobs it runs for you. Anything can be removed or paused there.
 
@@ -124,3 +124,7 @@ It uses the real model, takes a few minutes, and starts each conversation from a
 - Job postings come from Arbetsförmedlingen's JobSearch API (Sweden) and from Himalayas and Jobicy (remote roles), each credited and linked. There is no source for on-site jobs in other countries: the large job sites do not permit automated reading. Postings written in Swedish are ruled out unless Swedish is one of your working languages.
 - A job match means the posting's main requirements were found in your CV; it is not a prediction that you will get the job. Reading a PDF CV needs `pdftotext` (poppler-utils) on the server; Word and text files need nothing extra.
 - What leaves your machine, and what is stored on it, is described on the page's “Data and services” link ([public/privacy.html](public/privacy.html)).
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).

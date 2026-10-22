@@ -5,7 +5,7 @@ import {instant} from '../lib/time.mjs';
 const date='2026-10-10';
 const origin={id:'station',name:'Station',location:{latitude:59.33,longitude:18.06},periods:null};
 const venue={...origin,id:'venue',name:'Venue'};
-const input={date,start:'10:00',deadline:'18:00',budgetMode:'unlimited',timeMode:'flexible',activities:[{id:'visit',label:'参观',query:'Venue',duration:60,allowance:200,requiredNames:[]}]};
+const input={date,start:'10:00',deadline:'18:00',budgetMode:'unlimited',timeMode:'flexible',activities:[{id:'visit',label:'Visit',query:'Venue',duration:60,allowance:200,requiredNames:[]}]};
 const discovery={origin,origins:[origin],pools:{visit:[venue]}};
 const day={date,own:[],busy:[]};
 const route=async()=>({minutes:10,walking:8,mode:'transit',fare:null});
@@ -47,6 +47,6 @@ test('limited search is not exhaustive infeasibility and targeted replan reuses 
 test('fixed sessions outside the trip window and overlapping sessions fail before routing',async()=>{
  const one=await proposeJourneys({...input,deadline:'11:00'},discovery,{route:async()=>assert.fail(),day,locks:[{kind:'visit',placeId:'venue',start:660,duration:60}]});
  assert.ok(one.diagnostics.some(d=>d.code==='fixed_window'));assert.equal(one.repairOptions[0].requiresDecision,false);
- const two=await proposeJourneys({...input,activities:[...input.activities,{...input.activities[0],id:'other',label:'第二项'}]}, {...discovery,pools:{visit:[venue],other:[venue]}},{route:async()=>assert.fail(),day,locks:[{kind:'visit',placeId:'venue',start:660,duration:60},{kind:'other',placeId:'venue',start:690,duration:30}]});
+ const two=await proposeJourneys({...input,activities:[...input.activities,{...input.activities[0],id:'other',label:'Second item'}]}, {...discovery,pools:{visit:[venue],other:[venue]}},{route:async()=>assert.fail(),day,locks:[{kind:'visit',placeId:'venue',start:660,duration:60},{kind:'other',placeId:'venue',start:690,duration:30}]});
  assert.ok(two.diagnostics.some(d=>d.code==='fixed_overlap'));assert.equal(two.routeCalls,0);
 });

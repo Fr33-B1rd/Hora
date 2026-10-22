@@ -27,11 +27,11 @@ Earlier evidence below is historical and superseded where this section differs.
 ## Stockholm input and navigation repair · 2026-10-06
 
 - Reproduced the reported browser state: URL still `#live`, visible page was the Shanghai fixture planner, and its model response rejected SEK. Navigation had changed the in-memory view without updating the URL.
-- The default page and main “规划行程” navigation now open the Stockholm workflow. Shanghai fixture pages have explicit demo labels; hash navigation, browser history and reload use the same view.
-- Live model schema now accepts a bounded departure-place query. Supported Stockholm currency aliases include SEK and 瑞典克朗. No generated coordinates or place IDs are trusted: all locations come from Google Places.
+- The default page and main “Plan a trip” navigation now open the Stockholm workflow. Shanghai fixture pages have explicit demo labels; hash navigation, browser history and reload use the same view.
+- Live model schema now accepts a bounded departure-place query. Supported Stockholm currency aliases include SEK and the Chinese name for Swedish kronor. No generated coordinates or place IDs are trusted: all locations come from Google Places.
 - The submitted intent now updates constraints and searches departure/haircut/ramen/cinema candidates. A unique departure match can be selected automatically; multiple matches remain choices. Each failed search is reported individually. Missing prices, windows and cinema showtime are displayed before route generation can proceed.
 - `node --test tests/*.test.mjs`: 24 passed, 0 failed. The new regression checks SEK context, departure query propagation and validation, and separation from the Shanghai model schema. Syntax checks passed for edited modules.
-- Browser navigation verified `#planner` for “上海演示”, then `#live` for “规划行程”. Real Nebius + Google calls using the user's exact T-Central sentence produced 1000 SEK, 13:00–20:00, three departure matches and five candidates for each activity. Default local date was changed to Stockholm today.
+- Browser navigation verified `#planner` for “Shanghai demo”, then `#live` for “Plan a trip”. Real Nebius + Google calls using the user's exact T-Central sentence produced 1000 SEK, 13:00–20:00, three departure matches and five candidates for each activity. Default local date was changed to Stockholm today.
 - No calendar events were written and no merchant availability or ticket purchase was claimed. Complete route planning still requires the user's selected venues and verified activity conditions.
 - Final browser recheck used Stockholm today (2026-10-06), preserved the exact input and candidates after browser Back, and kept route generation disabled until required details are provided. Screenshot capture was unavailable in this browser session; verification used rendered DOM/accessibility state, not a visual screenshot.
 
@@ -83,7 +83,7 @@ Environment: Windows, Node.js v24.19.0. Local service: `http://127.0.0.1:4318`. 
 - Added meeting repairs a previously valid plan while preserving the locked cinema and start time.
 - Meeting overlapping the locked movie yields no feasible plan and a specific explanation; removing that requested activity cannot silently erase the commitment.
 - Invalid budgets/times and stale or altered proposals cannot be approved.
-- Bounded Chinese input parsing, including spaces in `晚上 7 点前`; unsupported booking requests are declined.
+- Bounded Chinese input parsing, including spaces inside a Chinese “before 7 in the evening”; unsupported booking requests are declined.
 - Calendar UID stability, Shanghai-to-UTC conversion, newline escaping and UTF-8 line folding.
 - Real local HTTP requests validate demo status, parser results, input limits, origin checks and private-file isolation.
 
@@ -94,7 +94,7 @@ Used the Codex in-app browser against the running local service.
 | Flow | Observed result |
 | --- | --- |
 | Overview and planning pages | Rendered; three proposals, timeline, SVG route and explanation available. |
-| Natural-language request | Parsed supported activity/constraint fields. `预算 20 元，晚上 7 点前回家` resulted in ¥20 / 19:00 constraints and an explicit infeasible state. |
+| Natural-language request | Parsed supported activity/constraint fields. A Chinese request for “a budget of 20 yuan, home before 7 in the evening” resulted in ¥20 / 19:00 constraints and an explicit infeasible state. |
 | Confirm initial proposal | Local itinerary and reminder items created, with movie lock. |
 | New 14:00–15:00 meeting | Preview changed ramen from 13:18 to 15:00 and haircut from 14:22 to 16:04; city cinema stayed 17:00–18:50. |
 | Apply repair and reload | Meeting and repaired activities persisted; locked movie remained 17:00. |
@@ -111,159 +111,159 @@ The in-app browser's pointer automation sometimes hit a different position; keyb
 
 Nebius live inference, provider error responses from the actual service, external maps, news feeds, real bookings/payments/invitations, external calendar imports and background scheduling were not exercised. The demo does not claim these integrations are active. Automated checks establish correctness of the bounded fixture workflow, not real-world trip feasibility or broad assistant capability.
 
-## 2026-10-06 内嵌路线地图验收
+## 2026-10-06 Embedded route map acceptance
 
-- 自动测试 40/40 通过。新增真实响应字段映射、Google 标准折线解码、缺失/损坏路径处理、分段交通方式、顺序/返回段，以及浏览器密钥隔离测试；原活动核实、重排、日历重复确认测试保持通过。
-- 用户确认后启用 Maps JavaScript API，创建 Daylight Browser Map Key 并保存至本机 .env。Google Cloud 回读确认仅限 Maps JavaScript API 和 http://127.0.0.1:4318/*、http://localhost:4318/*；未复用或扩大服务端 Maps 密钥。
-- 在真实 4318 服务通过浏览器生成 2026-10-07 斯德哥尔摩三套方案。Google 底图、起终点与三个编号标记、四段真实路线成功显示。紧凑方案通勤 13 分钟、17:49 返回；口碑方案通勤 18 分钟、17:54 返回。这是本次查询结果，不代表固定班次或未来价格。
-- 切换口碑方案后，地图地点顺序从电影/拉面/理发变为电影/理发/拉面；编号、时间列表与返回段同步更新。点击第 2 站地图标记，时间线出现 map-selected；键盘选第 4 段显示 Tokyo Ramen → T-Centralen、17:50–17:54。
-- 真实「刷新日历并重排」后，地图会话编号变化，绘制 14 个实际路径分段、4 段行程；锁定电影仍为 14:01–16:01。没有确认写入任何日历变更。
-- 当前浏览器 959 CSS px 下验证地图在时间线上方、地图折叠/展开及全程适配；额外请求视口覆盖未改变实际宽度，因此未声称完成手机/宽桌面实机验收。对应响应式样式已提供。
-- 无 Key 时明确显示未配置，路线详情与外链保留；不把地点直线连线当成真实道路。Google API 偶发超时和 Cloud 页面加载失败经重试恢复；不伪造离线服务结果。
-- 截图：artifacts/maps-live-completed.png；Cloud 限制回读截图 artifacts/maps-key-saved.png。截图不包含密钥值。
+- Automated tests 40/40 pass. New tests cover mapping of real response fields, decoding Google's encoded polylines, missing or damaged paths, per-leg transport modes, ordered and return legs, and isolation of the browser key; the existing activity-verification, rescheduling and calendar double-confirmation tests still pass.
+- After the user confirmed, the Maps JavaScript API was enabled, a "Daylight Browser Map Key" was created and saved to the local .env. Reading it back in Google Cloud confirmed it is restricted to the Maps JavaScript API and to http://127.0.0.1:4318/* and http://localhost:4318/*; the server-side Maps key was neither reused nor widened.
+- Through the browser, the real service on 4318 generated three Stockholm plans for 2026-10-07. The Google base map, start and end points, three numbered markers and four real route legs displayed. The compact plan: 13 minutes of travel, back at 17:49; the best-rated plan: 18 minutes, back at 17:54. These are this query's results, not fixed departures or future prices.
+- Switching to the best-rated plan changed the map's stop order from cinema/ramen/haircut to cinema/haircut/ramen; numbers, the time list and the return leg updated with it. Clicking the stop-2 marker selected it in the timeline (map-selected); selecting leg 4 by keyboard showed Tokyo Ramen → T-Centralen, 17:50–17:54.
+- After a real "refresh calendar and reschedule", the map session number changed, 14 actual path segments were drawn for 4 legs, and the locked cinema stayed at 14:01–16:01. No calendar change was confirmed or written.
+- At the current browser width of 959 CSS px, the map above the timeline, collapsing/expanding the map and fit-to-route were verified; an additional viewport override did not change the actual width, so phone and wide-desktop acceptance is not claimed. The responsive styles are in place.
+- Without a key the map says it is not configured, and route details and external links remain; straight lines between places are not presented as real roads. Occasional Google API timeouts and Cloud page load failures recovered on retry; no offline results were faked.
+- Screenshots: artifacts/maps-live-completed.png; the Cloud restriction read-back: artifacts/maps-key-saved.png. The screenshots contain no key values.
 
-官方接口依据：[路线折线](https://developers.google.com/maps/documentation/routes/traffic_on_polylines)、[地图脚本加载](https://developers.google.com/maps/documentation/javascript/load-maps-js-api)、[高级标记事件](https://developers.google.com/maps/documentation/javascript/reference/advanced-markers)、[CSP](https://developers.google.com/maps/documentation/javascript/content-security-policy)。
+Official API references: [route polylines](https://developers.google.com/maps/documentation/routes/traffic_on_polylines), [loading the Maps script](https://developers.google.com/maps/documentation/javascript/load-maps-js-api), [advanced marker events](https://developers.google.com/maps/documentation/javascript/reference/advanced-markers), [CSP](https://developers.google.com/maps/documentation/javascript/content-security-policy).
 
-## 2026-10-07 语音对话入口验收
+## 2026-10-07 Voice conversation entry acceptance
 
-- 自动测试 46/46 通过，含 6 组语音测试：显式启动、临时/最终转写区分、累计结果不重复、权限拒绝、取消与晚到事件、60 秒收音及停止超时、朗读与收音互斥、严格命令分流和基于实际方案的回复。语音 API 使用注入的模拟对象测试；这些测试不等于真实麦克风识别成功。HTTP 检查新增两个语音模块可正常加载。
-- 当前 Codex 内置浏览器显示可用的「开始说话」和朗读控件；测试未启动麦克风、未授予新权限、未录制用户环境音。真实声音识别、发音质量和浏览器语音服务连通性仍待用户试说验收。
-- 在语音转写文本框手动输入完整 Stockholm 请求，实际调用 Nemotron、Google 地点/交通和日历只读检查，返回 3 套方案与文字对话回复。
-- 输入「选择第二个方案」后，选中口碑优先，时间线与地图同步为电影 → 理发 → 拉面、4 段路线；本次结果 17:54 返回。电影仍锁定为 14:01–16:01。
-- 追加「预算改为900瑞典克朗，其他不变」后，上限从 1000 改为 900 SEK，保留 T-Centralen、2026-10-07、13:00–20:00 和三个活动，再次生成三套真实候选。
-- 「刷新日历并重排」通过同一操作入口实际完成，地图显示新方案，回复明确尚未写入。输入「确认写入日历」仅返回手动预览确认说明，预览按钮保持禁用，没有出现最终确认按钮。本轮未调用真实日历写入。
-- 点击「朗读回复」后页面进入正在朗读并提供停止按钮，随后停止/完成恢复。未对扬声器实际音频做听觉验收。检查时未捕获浏览器 error 日志。
-- 修正中文输入法组合输入期间重建文本框的问题；对话新回复自动滚动到末尾，普通重绘保留用户查看历史的位置。当前桌面布局已查看，截图为 artifacts/voice-ui.png；未声称完成所有浏览器或移动端语音验收。
-- 使用方式与兼容性边界见 README「语音对话」，数据处理说明已更新 privacy.html。该版是手动收音、确认转写后发送的行程对话，不是持续监听或实时语音通话。
+- Automated tests 46/46 pass, including 6 voice test groups: explicit start, interim versus final transcripts, cumulative results without repetition, permission denied, cancellation and late events, 60-second capture and stop timeout, speaking and listening being mutually exclusive, strict command routing, and replies based on the actual plan. The speech APIs are tested with injected stand-ins; these tests do not show that real microphone recognition works. HTTP checks confirm the two new voice modules load.
+- The Codex in-app browser shows working "Start speaking" and read-aloud controls; the test did not start the microphone, grant any new permission or record the user's surroundings. Real recognition, pronunciation quality and connectivity to the browser's speech service still await the user's own trial.
+- A complete Stockholm request typed into the transcript box made real calls to Nemotron, Google places and transit and a read-only calendar check, and returned 3 plans with a written reply.
+- After "choose the second plan", the best-rated plan was selected; the timeline and map changed together to cinema → haircut → ramen with 4 route legs; back at 17:54 this time. The cinema stayed locked at 14:01–16:01.
+- After "change the budget to 900 Swedish kronor, keep everything else", the limit went from 1000 to 900 SEK, keeping T-Centralen, 2026-10-07, 13:00–20:00 and the three activities, and three new real candidates were generated.
+- "Refresh calendar and reschedule" completed through the same entry point; the map showed the new plan and the reply said explicitly that nothing had been written. "Confirm writing to the calendar" returned only the instructions for confirming in the manual preview; the preview button stayed disabled and no final confirm button appeared. No real calendar write was made in this round.
+- Clicking "Read reply aloud" put the page into a speaking state with a stop button, which then recovered after stopping or finishing. Speaker output was not checked by ear. No browser error logs were captured during the check.
+- Fixed the text box being rebuilt during Chinese input-method composition; new replies scroll into view, while ordinary redraws keep the user's position in the history. The current desktop layout was reviewed; screenshot artifacts/voice-ui.png. Acceptance on all browsers or on mobile is not claimed.
+- Usage and compatibility limits are in the README's voice section, and privacy.html was updated for data handling. This version captures speech manually and sends after the transcript is confirmed; it is not continuous listening or a live voice call.
 
-## 2026-10-07 浏览器识别网络错误修复
+## 2026-10-07 Fix for the browser recognition network error
 
-- 用户在内置浏览器实际点击收音后收到 SpeechRecognition 的 network 错误。页面回读证实错误来自识别环节；没有足够证据确定具体远端网络/浏览器服务原因。上节仅做模拟识别测试的限制在此暴露。
-- 将默认识别链路替换为 MediaRecorder → 本机 Daylight → faster-whisper small CPU int8。没有继续依赖浏览器 SpeechRecognition，也没有云端自动回退。只监听原 127.0.0.1 服务，无新公开端口或凭据。音频以内存 JSON/base64 和私有子进程标准输入传递，不写录音文件；子进程强制离线加载模型。
-- 在独立 .venv-voice 安装运行组件，下载模型文件 model.bin 483,546,902 字节。最初 PyAV 19 与 faster-whisper 1.2.1 不兼容（metadata_errors 参数），固定为 PyAV 16.0.1 后重新验证。setup-voice.ps1 和 voice-requirements.txt 可复现安装，不修改原 Anaconda 包。
-- 用 Windows 本机语音合成制作非私人测试句 Select plan two：1.98 秒 WAV 经真实 HTTP 接口识别为 Select plan 2.，耗时约 1.20 秒；转换为 WebM/Opus 后同样正确，约 1.05 秒。2 秒静音返回空文本，前端按没有听清处理。测试样本在 artifacts/voice-local-sample.wav、voice-local-sample.webm、voice-local-silence.wav，仅为人工合成测试数据。
-- 用户亲自使用麦克风确认“能录音，转写也正确，但是繁体字”；页面回读草稿为「選擇第二個方案」。随后对中文输出加入 OpenCC t2s，单独核对「選擇第二個方案，預算九百瑞典克朗，請重新規劃行程。」正确转为简体。现有草稿通过页面改为简体，未提交请求；新录音由服务端自动转换。没有保存或重放用户音频。
-- 最终 Node 自动测试 51/51 通过，新增录音停止后释放麦克风、权限等待取消、取消转写忽略晚到文本、错误分类、音频大小/语言验证、跨来源拦截、英语数字词及繁体选择指令。模型更新后 WebM 真实接口再次返回 200 和正确文本；服务回读 configured=true、ready=true。
-- 页面显示「本机语音已就绪」；录音最多 60 秒、4 MiB，单个转写请求最多 120 秒，停止录音后才转写。取消或切后台会停止录音并中止请求。未改变日历确认逻辑，也未进行任何真实日历写入。本节替代上节中依赖浏览器云识别的现状描述；不宣称已做大规模口音、噪声或长录音准确率评测。
-- 截图：artifacts/voice-local-ready.png。README 和 privacy.html 已同步数据边界及简体输出规则。
-
-
-## 2026-10-07 生成行程 Failed to fetch 修复
-
-- 排查时 4318 端口没有监听者，之前临时运行会话已不存在；网页保留旧界面，点击产生浏览器 Failed to fetch。现有日志没有提供确定的进程退出原因，因此仅确认服务停止，不将模型或 Maps 故障作为原因。
-- 启动器新增独立后台模式，start-demo.bat 默认使用；启动后父启动命令已退出，在后续独立命令中仍确认 127.0.0.1:4318 同一进程监听并成功响应。重复运行启动器返回已运行，无额外监听进程。未配置开机启动、公开网络监听或自动监控。
-- 新增 stop-demo.bat/ps1，读取本地进程记录并比对进程名及启动时间后停止；未在用户正在使用的服务上执行停止验收。
-- 请求失败提示改为本机服务连接断开及启动入口，保留已有输入、候选与写入预览；不自动重发日历写入。
-- 刷新后从浏览器点击生成三套行程，实际返回三套 Stockholm 方案，900 SEK 预算和原日期/需求保留，地图显示路线。本次未确认或写入日历。
+- When the user actually started capture in the in-app browser, SpeechRecognition reported a network error. Reading the page back confirmed the error came from recognition; there was not enough evidence to identify the specific remote network or browser-service cause. This exposed the limit noted above, that recognition had only been tested with stand-ins.
+- The default recognition path was replaced with MediaRecorder → local Daylight → faster-whisper small, CPU int8. Browser SpeechRecognition is no longer relied on, and there is no automatic cloud fallback. Only the existing 127.0.0.1 service listens; no new public port or credential. Audio travels as in-memory JSON/base64 and over a private child process's standard input; no recording is written to disk, and the child process loads the model offline.
+- The components were installed in a separate .venv-voice; the model file model.bin is 483,546,902 bytes. PyAV 19 was at first incompatible with faster-whisper 1.2.1 (the metadata_errors argument); after pinning PyAV 16.0.1 it was verified again. setup-voice.ps1 and voice-requirements.txt reproduce the install without changing the existing Anaconda packages.
+- A non-personal test sentence, "Select plan two", made with Windows' own speech synthesis: the 1.98-second WAV was recognised through the real HTTP endpoint as "Select plan 2." in about 1.20 seconds; converted to WebM/Opus it was also correct, in about 1.05 seconds. Two seconds of silence returned empty text, which the page treats as not heard. The test samples are artifacts/voice-local-sample.wav, voice-local-sample.webm and voice-local-silence.wav, synthetic test data only.
+- The user tried the microphone personally and confirmed "it records, and the transcript is correct, but in traditional characters"; the page's draft read back as the traditional-character form of "choose the second plan". OpenCC t2s conversion was then added for Chinese output, and a traditional-character sentence ("choose the second plan, budget nine hundred kronor, please plan the trip again") was separately checked to convert correctly to simplified characters. The existing draft was changed to simplified characters on the page without sending a request; new recordings are converted on the server. No user audio was saved or replayed.
+- Final Node tests 51/51 pass, newly covering releasing the microphone after recording stops, cancelling while waiting for permission, ignoring late text after a cancelled transcription, error classification, audio size and language validation, cross-origin blocking, English number words and traditional-character selection commands. After the model update the real WebM endpoint again returned 200 with correct text; the service reports configured=true, ready=true.
+- The page shows "Local voice ready"; recording is limited to 60 seconds and 4 MiB, each transcription request to 120 seconds, and transcription starts only after recording stops. Cancelling or moving to the background stops recording and aborts the request. The calendar confirmation logic is unchanged and no real calendar write was made. This section replaces the previous section's description of relying on the browser's cloud recognition; no large-scale evaluation of accents, noise or long recordings is claimed.
+- Screenshot: artifacts/voice-local-ready.png. The README and privacy.html were updated for the data boundaries and the simplified-character output rule.
 
 
-## 2026-10-07 对话入口与本地发现
+## 2026-10-07 Fix for "Failed to fetch" when generating a plan
 
-- 新增 `/api/chat`：模型维护本轮 slots，缺少预算、地标、日期、时段或少步行的分钟上限时追问；有效条件经短期 token 交给现有确定性规划器。模型只可提议回复、规划、查询活动/新闻、选择/读取方案或重排，不暴露日历确认/支付/预约工具。
-- 真实浏览器按用户示例进行了四轮文字对话：三项活动 → 1000 kr/少走路 → T-Central、13:00–20:00 → 累计20分钟。得到三套方案，步行分别13/18/13分钟，预算上限1000 SEK；地图四段路线与候选一致。原14:01–16:01锁定电影保留，13:15–13:30会议避开。本轮没有真实日历写入。
-- 同一段对话继续询问本地新闻与附近活动，真实读取 Visit Stockholm 页面和 SVT Stockholm RSS。最终返回4条活动、3条新闻，显示原题、机器翻译、来源链接、活动日期或发布日期、直线距离和查询时间。新闻只读取RSS标题及摘要，不宣称读过全文或进行独立事实核查。机器翻译可能生硬，应以原文为准。
-- 标题翻译最初未返回预期JSON，改为强制结构化工具响应，并提供RSS摘要用于消歧。来源URL、日期、位置始终由来源适配器保留，不接受模型改写。失败时明确提示并保留原题；不换成示例新闻或假活动。
-- 页面主导航改为「助手对话」，文字与录音转写共用同一个发送入口和会话。刷新后聊天内容和条件恢复；「新对话」只清除聊天，不改日历。麦克风识别沿用已经由用户验收的本机Whisper，本轮未重新采集用户语音；不宣称实时双向语音通话。
-- 最终58/58自动测试通过，记录在 artifacts/conversation-tests.txt。新增多轮缺失信息、字段保留、事件日期/距离/类别、RSS来源与时效、翻译不可改来源、累计步行包含返回段，以及对话token到真实规划接口的模拟HTTP链路零日历写入检查。
-- 服务通过项目后台启动器重启并继续监听127.0.0.1:4318。无需额外新闻Key。外部源格式变化、配额和模型质量仍是原型限制；目前活动只有官方精选，不等于全量城市活动。
-
-- 最后从新闻话题切回行程，仍保留1000 SEK、20分钟步行及13:00–20:00时段，重新生成成功；再通过聊天选择第二方案，实际选中「口碑优先」，地图同步，18分钟步行、17:54返回。截图：artifacts/conversation-ready.png。
+- During diagnosis nothing was listening on port 4318; the earlier temporary session no longer existed. The page kept its old interface, and clicking produced the browser's "Failed to fetch". The existing logs gave no definite reason for the process exiting, so only the stopped service is confirmed; the model or Maps are not blamed.
+- The launcher gained a separate background mode, used by default by start-demo.bat; after start the parent command exits, and a later, separate command confirmed that the same process was still listening on 127.0.0.1:4318 and responding. Running the launcher again reports that it is already running, with no extra listener. No start-at-boot, public network listening or automatic monitoring was configured.
+- Added stop-demo.bat/ps1, which reads the local process record and stops the process after matching its name and start time; stopping was not tested on the service the user was using.
+- The request-failure message now says the connection to the local service was lost and points to the launcher, keeping existing input, candidates and the write preview; calendar writes are never resent automatically.
+- After a refresh, generating three plans from the browser returned three real Stockholm plans, keeping the 900 SEK budget and the original date and needs, with routes on the map. Nothing was confirmed or written to the calendar this time.
 
 
-## 2026-10-07 自由活动与不限预算修复
+## 2026-10-07 Conversation entry and local discovery
 
-- 根因：原状态将预算限制为数字/null，将活动限制为hair/ramen/movie；null被当作未回答。现改为unknown/limited/unlimited/flexible预算状态，以及最多4项通用活动（稳定id、名称、搜索query、估计时长、费用预留）。不限预算不替换成10000等虚构上限，之后可通过对话改回明确金额。
-- 活动先后关系以有向边表示，校验重复/非法id和顺序环；每套候选与重排都过滤不符顺序的活动排列。中餐使用Chinese restaurant搜索条件，咖啡和书店同样走通用描述，不新增类别白名单。
-- 少步行是软偏好，候选比较使用实际路线步行分钟；只有明确分钟数才设硬上限。候选和路线查询次数仍有限，不声称全局最优或全城覆盖。
-- 模拟测试通过后，真实Nemotron验收发现稀疏patch会漏提取今天、活动列表或预算模式。改为要求完整状态字段、集中提示日期和顺序；最新真实API检查已正确提取今天博物馆→中餐、明天咖啡→书店/预算先看建议，以及完整单句不限预算需求。证据：artifacts/flexible-live-eval-final.json。此前失败记录保留，不能只凭模拟测试推断模型理解可靠。
-- 真实浏览器三轮：今天博物馆然后中餐 → 没有预算限制 → T-Central、10:00–20:00、尽量少走路。预算回答后继续询问地点和时间，不再重复预算；取得3套真实Google地点和路线。实际候选包含Paradox Museum Stockholm、National Museum、Tang和Weidao；累计步行11/13/11分钟。费用为临时预留，未查商家报价，不作为真实消费结论。
-- 原日期有旧电影、理发、拉面与会议。无关旧活动作为忙碌时间保留，结果提示保留数量；博物馆安排在上午，中餐因营业窗口和已有安排排到晚间。未自动取消旧行程，未声称已补全旧活动通勤。本轮未执行真实日历写入。
-- 地图、朗读、核实面板、费用设置和日历预览都使用通用活动名称；不用undefined或内部id展示。用户预算不限仍需日历预览确认，不授权购买或预约。
-- 自动测试65/65通过，记录artifacts/flexible-tests.txt。新增不限/建议/改回上限、多轮字段保留、通用搜索、顺序与循环拒绝、无限预算下高额预留、软/硬步行偏好、旧活动避让、通用日历标题、保留旧事件与重试幂等。模拟HTTP完成旧三项活动与新博物馆/中餐共存，并确认旧事件内容不变；这些日历写入仅在隔离模拟提供器中执行。
+- Added `/api/chat`: the model keeps this turn's slots and asks follow-up questions when the budget, landmark, date, time window or maximum walking minutes are missing; valid conditions are handed to the existing deterministic planner through a short-lived token. The model may only propose replies, plan, look up events or news, select or read a plan, or reschedule; no calendar confirmation, payment or booking tools are exposed.
+- In a real browser, four turns of text conversation followed the user's example: three activities → 1000 kr / little walking → T-Central, 13:00–20:00 → 20 minutes in total. Three plans came back with 13/18/13 minutes of walking and a 1000 SEK budget cap; the map's four route legs matched the candidates. The existing locked cinema at 14:01–16:01 was kept and a 13:15–13:30 meeting was avoided. No real calendar write this round.
+- The same conversation went on to ask for local news and nearby events, reading the real Visit Stockholm pages and the SVT Stockholm RSS feed. It returned 4 events and 3 news items with original titles, machine translations, source links, event or publication dates, straight-line distance and query time. News uses only RSS titles and summaries; reading full articles or independent fact-checking is not claimed. Machine translation can be awkward; the original is authoritative.
+- Title translation at first did not return the expected JSON; it was changed to a forced structured tool response, with the RSS summary supplied for disambiguation. Source URL, date and location are always kept by the source adapters and cannot be rewritten by the model. On failure the page says so and keeps the original title; no sample news or fake events are substituted.
+- The main navigation became "Assistant conversation"; typed text and voice transcripts share one send path and one session. After a refresh the chat and conditions are restored; "New conversation" clears only the chat, not the calendar. Microphone recognition continues with the local Whisper already accepted by the user; the user's voice was not recorded again this round, and live two-way voice calls are not claimed.
+- Final automated tests 58/58 pass, recorded in artifacts/conversation-tests.txt. New coverage: multi-turn missing information, keeping fields, event date/distance/category, RSS source and freshness, translation unable to change the source, cumulative walking including the return leg, and a stand-in HTTP chain from the conversation token to the real planning endpoint with zero calendar writes.
+- The service was restarted through the project's background launcher and keeps listening on 127.0.0.1:4318. No extra news key is needed. Changes in external source formats, quotas and model quality remain prototype limits; events are the official curated selection only, not every event in the city.
 
-
-## 对话流程与结果复核修复（2026-10-07）
-
-- 状态提取与回复生成分开：缺项由程序判定，模型承接回答；预算不再作为必填阻塞。最终解释基于服务器保存的结果，不能通过语言步骤修改状态或写日历。
-- 真实 Nebius 多轮验证：KFC → KTH → 纪念品；“暂时没有规划预算”得到 flexible；“从tCentral出发”保留活动、品牌和顺序；“没有限制”“时间你来安排吧”得到暂定时间；“早上八点出发晚上12点回来”得到08:00–24:00。另测“我不确定要花多少钱，你先给建议”。结构化输出见本机 artifacts/agent-dialogue-live.json、agent-dialogue-variants.json。
-- 浏览器真实 Maps/Calendar 只读验收：08:00–24:00生成三套候选，首站为真实KFC（Liljeholmsgränd 7），第二站KTH，第三站纪念品商店；没有使用麦当劳替代KFC。显示08:15–09:00等待营业与12:17–17:50的日历间隔。原三项活动保留导致位置衔接未核实，页面和回复说明暂不能保存。
-- 指定名称无匹配时，最多追加一次精确名称搜索。用户委托时间而暂定窗口排不下时，最多扩大时段重试一次，累计路线请求不超过36次；明确指定的时间不自动扩大。
-- 75/75自动测试通过，artifacts/agent-dialogue-tests.txt。新增测试包含品牌不符、精确重试、午夜日期、灵活预算/时间、回复失败回退、空档和衔接标记；HTTP验收同时验证未核实衔接时预览被拒绝，旧事件和写入次数不变。
-- 验收中发现并修正了叙述把助手暂定时段称作用户指定时段的问题；无方案的回复也携带时段来源。自动测试中的模型和日历写入是模拟，真实语义验证单独记录，不以测试数量代表所有自然语言可靠性。
-- 本次未写入或删除真实Google Calendar事件，未预约商家，未录音。真实麦克风本次未重测，文字与语音共用对话发送路径。
-- 边界：名称匹配依赖模型提取正式名和别名，无法保证所有自然语言都无误；回复语气仍受模型影响。校园进入权限、纪念品库存和实际价格仍待核实。尚未自动把旧线下活动地点接入全天路线，以阻止未验证预览的方式明确该限制。
-
-- 最后复测补充：每轮只应用 `changedFields` 声明的用户更新，时间调整不再覆盖活动时长与指定品牌；真实模型三轮中30/60/45分钟估计和KFC/KTH名称保持不变，见 artifacts/agent-dialogue-final.json。解释步骤不再接收逐站时刻，拒绝含结果未提供时刻的叙述，以免混淆交通与参观时间；详细时刻以确定性时间线为准。
+- Finally, switching back from news to the trip kept 1000 SEK, 20 minutes of walking and 13:00–20:00, and regenerating succeeded; choosing the second plan through chat actually selected "best-rated", the map followed, with 18 minutes of walking and back at 17:54. Screenshot: artifacts/conversation-ready.png.
 
 
-## 2026-10-07：按需 skills 与模型执行循环
+## 2026-10-07 Free-form activities and unlimited budget fix
 
-本轮主对话迁移至 `/api/agent`，不是旧 `/api/chat` 提取字段后固定追问的改名。项目内4个SKILL.md由运行时按需加载，并实际控制工具可见范围。网页沿用文字/本机转写输入，展示动作记录并采用服务端检查的方案和地图。
-
-自动化：`node --test --test-timeout=45000 tests/*.test.mjs`，88/88通过，见 `artifacts/agent-runtime-tests.txt`。新增覆盖 skill 白名单、任意路径/未授权写入拒绝、搜索与选择分离、观察后改查询、约束变化后的有效重试、稀疏状态与暂定条件保持、日历私人字段最小化、执行上限、完成检查退回遗漏，以及 agent 方案进入已有预览接口而没有日历写入。4个skills均通过skill-creator格式校验。
-
-真实模型与真实数据：`artifacts/agent-live-outing-v2.json`记录一次真实模型、Maps和日历读取的完整结果，包含T-Centralen起点、先书店后咖啡和两套候选。独立网页验收中，模型收到“37分钟步行太多”的反馈后重新搜索，改为Adlibris Pocket与Vete-katten Centralen，实际路线累计步行5分钟，保留先后顺序和13:00出发；地图同步。没有真实日历写入。
-
-真实模型与隔离数据：`node --env-file=.env scripts/agent-live-smoke.mjs --live`已运行，见 `artifacts/agent-live-controlled.json`。地图/日历是明确的虚构provider观察，只有模型调用真实。首次指定书店查询返回不同名称，模型自行换查询、选中正确店名、规划；完成检查曾退回营业时间冲突，模型修订时间并重新规划。此结果验证调用与纠错路径，不证明该虚构书店存在。
-
-真实验收也发现并保留了限制：早期版本搜索隐式改起点、无状态版本的防重复拦住合理重试，已修正。模型曾漏做选择第二套方案并声称检查完成，因此增加了独立完成检查；检查器本身也会误判，曾把已有查询说成未执行，现改为传递已解析观察、成功动作及当前选择，剔除历史助手回复的干扰。它仍是概率性检查，不能作为语义正确性的保证。模型回复仍可能冗长、误称暂定条件为用户条件或混淆交通偏好与实际步行；以地图/时间线的已计算事实为准。这些不是测试全通过就能消除的问题。
-
-本轮未重新验收真实Google Calendar写入；写入安全回归使用隔离provider，真实调用保持只读。实际余票/座位/库存/参观权限仍没有自动核实能力。直接完整需求表单及手动核实/会议重排按钮保留原接口，只有主对话切至新agent。
+- Root cause: the old state limited the budget to a number or null, and activities to hair/ramen/movie; null was treated as unanswered. Now the budget has the states unknown/limited/unlimited/flexible, with up to 4 general activities (a stable id, name, search query, estimated duration and spending allowance). An unlimited budget is not replaced by an invented cap such as 10000, and can later be changed back to an explicit amount through conversation.
+- The order between activities is expressed as directed edges; duplicate or invalid ids and order cycles are rejected, and every candidate and reschedule filters out activity orders that break it. Chinese food uses a "Chinese restaurant" search, and coffee and bookshops likewise use general descriptions, with no category whitelist added.
+- Little walking is a soft preference; candidates are compared on actual route walking minutes, and only an explicit number of minutes sets a hard cap. Candidate and route queries remain limited; a global optimum or citywide coverage is not claimed.
+- After the stand-in tests passed, live Nemotron acceptance found that sparse patches could miss "today", the activity list or the budget mode. The model is now asked for complete state fields, with dates and order emphasised; the latest real API check correctly extracted museum → Chinese food today, coffee → bookshop tomorrow with "suggest a budget first", and a complete one-sentence request with an unlimited budget. Evidence: artifacts/flexible-live-eval-final.json. The earlier failures are kept; model understanding cannot be inferred to be reliable from stand-in tests alone.
+- Three turns in a real browser: a museum and then Chinese food today → no budget limit → T-Central, 10:00–20:00, as little walking as possible. After the budget answer it went on to ask for place and time without repeating the budget question, and got 3 sets of real Google places and routes. The actual candidates included Paradox Museum Stockholm, National Museum, Tang and Weidao; cumulative walking 11/13/11 minutes. Costs are provisional allowances, not merchant quotes, and are not a statement of real spending.
+- The original date already had an earlier cinema, haircut, ramen and a meeting. Unrelated earlier activities are kept as busy time, and the result says how many were kept; the museum went in the morning and the Chinese food in the evening because of opening hours and existing plans. Earlier plans were not cancelled automatically, and travel to and from them is not claimed to be complete. No real calendar write this round.
+- The map, read-aloud, verification panel, cost settings and calendar preview all use the general activity names; undefined or internal ids are never shown. An unlimited budget still requires calendar preview confirmation and does not authorise buying or booking.
+- Automated tests 65/65 pass, recorded in artifacts/flexible-tests.txt. New coverage: unlimited/suggested budgets and changing back to a cap, keeping fields across turns, general search, order and rejected cycles, large allowances under an unlimited budget, soft and hard walking preferences, avoiding earlier activities, general calendar titles, keeping earlier events, and idempotent retries. A stand-in HTTP test completed the three earlier activities alongside the new museum and Chinese food and confirmed the earlier events were unchanged; these calendar writes ran only against an isolated stand-in provider.
 
 
-最终版本复验补充：带完成检查的主对话已重新生成两套实际候选（T-Centralen → Adlibris Pocket → Vete-katten Centralen → T-Centralen），保留明确先后顺序与13:00–18:00窗口，网页地图显示真实步行路线。`artifacts/agent-live-discovery-reviewed.json`记录了完整的新执行循环：模型加载local-discovery，实际查询SVT与Visit Stockholm，返回7张来源卡片，修正无效/过长回复后通过完成检查，最终回复同时涵盖新闻与活动。正文中的新闻/活动不是预置demo文案。
+## Conversation flow and result review fix (2026-10-07)
+
+- State extraction and reply writing are separated: missing items are decided by the program and the model phrases the answer; the budget is no longer a blocking required field. The final explanation is based on the result saved on the server, and the language step cannot change state or write to the calendar.
+- Real multi-turn Nebius check: KFC → KTH → souvenirs; "no budget planned for now" gave flexible; "starting from tCentral" kept the activities, brand and order; "no limit" and "you arrange the times" gave provisional times; "leave at eight in the morning, back at 12 at night" gave 08:00–24:00. Also tested "I'm not sure how much to spend, suggest something first". Structured output in the local artifacts/agent-dialogue-live.json and agent-dialogue-variants.json.
+- Browser acceptance with real Maps and a read-only calendar: 08:00–24:00 generated three candidates; the first stop was a real KFC (Liljeholmsgränd 7), the second KTH, the third a souvenir shop; McDonald's was not substituted for KFC. It showed waiting for opening at 08:15–09:00 and the calendar gap at 12:17–17:50. Because the three earlier activities were kept, the location connections were not verified, and the page and reply said it could not be saved yet.
+- When a named place has no match, at most one extra exact-name search is made. When the user delegated the timing and the provisional window does not fit, the window is widened and retried at most once, with no more than 36 route requests in total; explicitly given times are never widened automatically.
+- 75/75 automated tests pass, artifacts/agent-dialogue-tests.txt. New tests cover wrong brands, the exact retry, midnight dates, flexible budget and time, reply-failure fallback, gaps and connection markers; HTTP acceptance also verifies that a preview with unverified connections is refused and that earlier events and the write count are unchanged.
+- During acceptance, the narrative was found calling the assistant's provisional time window the user's own, and this was fixed; replies with no plan also carry where the time window came from. The model and calendar writes in automated tests are stand-ins; real semantic checks are recorded separately, and the number of tests does not stand for reliability over all natural language.
+- No real Google Calendar events were written or deleted, no merchant was booked, and nothing was recorded. The real microphone was not retested; text and voice share the conversation send path.
+- Limits: name matching depends on the model extracting the official name and aliases, and cannot be guaranteed correct for all natural language; the reply's tone still depends on the model. Campus access, souvenir stock and real prices remain to be verified. Earlier offline activity locations are not yet joined into the full-day route; this limit is made explicit by refusing unverified previews.
+
+- Final retest addendum: each turn applies only the user updates declared in `changedFields`, so time changes no longer overwrite activity durations or named brands; across three real model turns the 30/60/45-minute estimates and the KFC/KTH names stayed unchanged, see artifacts/agent-dialogue-final.json. The explanation step no longer receives per-stop times and rejects narratives containing times the result did not provide, so travel and visit times are not confused; the deterministic timeline is authoritative for detailed times.
 
 
-### 未通过的最终复合指令验收
+## 2026-10-07: On-demand skills and a model execution loop
 
-“选择第二套方案，检查两项活动的核实状态和日历变更。只检查，不要保存。”未稳定通过。一次完成检查正确发现漏选；进一步复验时模型只调用finish、自然语言声称已切换，检查器错误通过，而页面仍选中第一套。没有把这次计为成功，也没有手工点击第二套来替代agent执行。该失败说明：工具回路和skills已经实际运行，但当前模型对复合目标的执行及语义完成检查还不够可靠，88项确定性测试不覆盖这一可靠性结论。
+This round the main conversation moved to `/api/agent`; this is not a rename of the old `/api/chat` with its fixed field extraction and follow-up questions. The project's 4 SKILL.md files are loaded on demand at run time and actually control which tools are visible. The page keeps text and local-transcript input, shows the action log, and uses the server-checked plans and map.
 
-已改善技能可发现性：plan-outing简介明确支持已有方案选择；verify-activity及calendar-review共用只读的select_plan工具，并说明跨skill任务组合。上述文件在下一轮动态读取，无需服务器重启。当前已知遗漏仍需后续解决，不能据本轮宣称完整自由对话或复合任务验收通过。
+Automated: `node --test --test-timeout=45000 tests/*.test.mjs`, 88/88 pass, see `artifacts/agent-runtime-tests.txt`. New coverage: the skill whitelist, refusing arbitrary paths and unauthorised writes, separating search from selection, changing the query after an observation, valid retries after constraints change, keeping sparse state and provisional conditions, minimising private calendar fields, execution limits, the completion check sending back omissions, and agent plans entering the existing preview endpoint with no calendar write. All 4 skills pass skill-creator's format check.
 
+Real model and real data: `artifacts/agent-live-outing-v2.json` records a complete run with the real model, Maps and a calendar read, with a T-Centralen start, bookshop before coffee, and two candidates. In separate web acceptance, after the feedback "37 minutes of walking is too much" the model searched again and switched to Adlibris Pocket and Vete-katten Centralen, with 5 minutes of actual walking in total, keeping the order and the 13:00 departure; the map followed. No real calendar write.
 
-## 2026-10-07：无结果回复、工具依赖与活动证据修正
+Real model with isolated data: `node --env-file=.env scripts/agent-live-smoke.mjs --live` was run, see `artifacts/agent-live-controlled.json`. Maps and calendar were explicitly fictional provider observations; only the model calls were real. The first named-bookshop query returned a different name; the model changed the query by itself, chose the correct shop name and planned; the completion check sent back an opening-hours conflict once, and the model revised the times and planned again. This verifies the calling and correction paths, not that the fictional bookshop exists.
 
-- 不新增按用户措辞匹配的分支；模型仍自行选择调查和下一步。每个工具观察附完整前置条件与当前选择，规划前一次性列出全部缺项；调整估计时长/金额保留地点查询结果并使旧日程失效。
-- 运行循环预留最终回复和核对机会。额度、网络或核对失败时，程序使用最新且未过期的结果解释具体冲突和下一步；条件变更后不再拿旧冲突当当前事实。
-- 新增活动 `availability` 语义分类（地点访问/需具体场次）；分类由模型完成，场次是否核实由本机有日期和地点的用户核实记录决定。未核实场次的可行路线标为草案，前端及预览接口阻止保存，核实表仍可用。普通地点访问保持暂定个人时间块语义。
-- 首轮真实模型复验仍失败：模型抄错 Google 长地点 ID，多次查询后仍无法绑定。失败记录保留在 `artifacts/agent-food-recovery-live-first-failure.json`。随后为模型观察引入短地点句柄，宿主解析真实 ID；已查询地点与句柄随进度提供，未知句柄仍被拒绝。
-- 自动化：95/95通过，见 `artifacts/agent-recovery-tests.txt`；新增单次完整预检、估计调整保留候选、短句柄映射、场次证据状态、额度收尾、零方案后网络失败保留真实日历冲突、旧结果失效等测试。隔离HTTP测试还验证草案预览400，应用用户场次证据并重排后预览200；写入次数始终0。4个skills通过格式检查。
-- 最新多轮历史回放在日期缺失时正常结束并询问日期，见 `artifacts/agent-food-recovery-live.json`；这次只验证了澄清，不算完整规划成功。完整请求网页复验结果另附。
-- 本轮真实服务调用仅搜索、模型推理和日历读取，没有确认写入、预约或购票。真实工作坊场次仍没有自动官方页面核实能力；语义分类和模型完成检查并非可靠性保证，不能宣称自由对话已全面验收。
+Real acceptance also found and kept limits: an early version's search silently changed the starting point, and the stateless version's duplicate guard blocked reasonable retries; both are fixed. The model once skipped choosing the second plan and claimed the check was complete, so an independent completion check was added; the checker itself also misjudges, having once said an existing query had not been run, so it now receives parsed observations, successful actions and the current selection, without the distraction of earlier assistant replies. It is still a probabilistic check and cannot guarantee semantic correctness. Model replies can still be long-winded, call provisional conditions the user's, or confuse transport preference with actual walking; the computed facts on the map and timeline are authoritative. These are not problems that passing tests can remove.
+
+Real Google Calendar writes were not re-accepted this round; write-safety regressions use an isolated provider and real calls stay read-only. Actual remaining tickets, seats, stock or access rights still cannot be verified automatically. The direct full request form and the manual verification and meeting-reschedule buttons keep their original endpoints; only the main conversation moved to the new agent.
 
 
-最终网页复验（真实模型、Maps、Google Calendar读取）：完整美食请求在18条处理记录后正常返回，所有出发点/活动地点完成绑定；市场名称别名不符曾被拒绝，模型纠正后继续。只进行了一次实际排程调用，结果为0套候选，原因是已有日历占用及常规营业窗口。回复实际解释了这些原因、指出工作坊场次未核实并给出调整方向，不再停留于通用执行上限提示。见 `artifacts/agent-recovery-browser.txt` 和 `artifacts/agent-recovery-browser.png`。这验证了失败结果可交付，不代表工作坊确实举办或已找到可行行程。
+Final version recheck addendum: the main conversation with the completion check again generated two real candidates (T-Centralen → Adlibris Pocket → Vete-katten Centralen → T-Centralen), keeping the explicit order and the 13:00–18:00 window, with real walking routes on the web map. `artifacts/agent-live-discovery-reviewed.json` records a complete new execution loop: the model loaded local-discovery, actually queried SVT and Visit Stockholm, returned 7 source cards, passed the completion check after fixing an invalid, overlong reply, and the final reply covered both news and events. The news and events in the text are not preset demo copy.
 
-仍观察到语义瑕疵：模型把自己选择的10:00–18:00说成用户计划，且将明确不限预算记成flexible（两者此处都没有硬金额上限）。完成检查没有拦住这些问题。没有把此次记为全部需求语义正确，也没有修饰或手动改写截图中的回复；后续需针对状态来源与语义提取可靠性继续改进。
 
-## 2026-10-07：活动发现到五项规划的跨轮修复
+### Final compound instruction acceptance: not passed
 
-- 正常追问先保存已知需求，未完成规划跨轮保留；没有当前排程结果时不能以一段生成文字冒充交付。可按用户意愿暂停任务，保留原需求。
-- Visit Stockholm 详情解析明确日期、开始和结束时刻；日期范围不再解释成“全天/今晚有场次”。活动证据以短期服务端引用跨轮传递，所选活动关联来源、场地与固定场次；余票、价格和预约仍不等于已核实。
-- 起点需用户原话依据，活动搜索中心只用于注明距离参照。活动查询不自动夹带新闻。
-- 支持最多6项活动；5–6项采用有限候选搜索及时间窗口剪枝，路线额度仍36。批量准备地点候选保留逐项检查/替换入口；预算和单项时间窗口可独立更新。
-- 活动来源推荐与新排程的事实结论由工具字段呈现。模型仍自主选择工具、候选和调整策略；完成复核不能创造场次、日历冲突或外部执行结果。
-- 需求核对只检查当前规划任务用户原话中漏存的活动及活动时段，排除此前发现活动的问题、助手回复和来源推荐。起点/日期/预算等前置条件由程序检查，不能用“缺起点”否决正常追问。核对器返回类型化遗漏和原文引用，程序拒绝非用户引用、已有字段的“缺失”及顺序/可行性/价格等越界要求。广义时段的数字解释由程序披露，即使模型漏写假设也会显示。
+"Choose the second plan, check the verification status of both activities and the calendar changes. Only check, do not save." did not pass reliably. Once the completion check correctly caught the missed selection; on a further recheck the model only called finish and claimed in words to have switched, the checker wrongly passed it, and the page still had the first plan selected. This was not counted as a success, and the second plan was not clicked by hand in place of the agent. The failure shows that the tool loop and skills really run, but the current model's execution of compound goals and the semantic completion check are not yet reliable enough; the 88 deterministic tests do not cover this reliability question.
 
-自动化114/114通过（`artifacts/agent-chain-tests.txt`），4个skills格式检查通过。覆盖五项活动加固定演出、午间窗口、跨轮来源、日期不能推断全天、虚构时间表拦截、零方案事实呈现、批量候选配额、有限需求核对、广义时间解释披露、未完成修订保留上次核对结果但不得冒充当前方案等。隔离HTTP验收继续检查日历预览边界和写入次数为0。
+Skill discoverability was improved: the plan-outing summary now states it supports choosing among existing plans; verify-activity and calendar-review share the read-only select_plan tool and explain how tasks combine across skills. These files are read dynamically on the next turn, with no server restart. The known omission still needs fixing; this round cannot claim complete free-form conversation or compound task acceptance.
 
-实际浏览器单独标签页验证了“今天市区有什么活动 → 选择Engla Li并提出五项需求 → 正常追问起点”，原标签页对话未改写。截图及可见文本：`artifacts/agent-chain-browser.png`、`artifacts/agent-chain-browser.txt`。这张截图不是完整可行路线或日历写入的证明。
 
-真实复验不是一次即通过：失败及部分结果按顺序保留在 `artifacts/agent-chain-live-first-failure.json` 至 `artifacts/agent-chain-live-tenth-partial.json` 的相应编号文件。它们暴露了日期臆测、虚构起点、只回复不执行、漏存活动、复核器臆造冲突、底层操作循环、遗漏午餐时段和假设未披露；这些记录没有覆盖或修饰为成功。最新完整回放在 `artifacts/agent-chain-live.json`。
+## 2026-10-07: No-result replies, tool dependencies and activity evidence fixes
 
-第11轮完整回放通过新增断言并生成3套真实候选（`artifacts/agent-chain-live-eleventh-pass-with-delays.json`）：5项活动、Gamla Stan地铁站起点、11:30–23:00、预算不限、午餐窗口及其原话、Engla Li来源21:00–22:00均保留，未把其他推荐演出当作日历冲突。不过追问阶段仍有复核器把此前活动发现问题当成缺起点/预算而重复阻塞，随后收窄核对范围并把请求按规划任务隔离。该轮候选因旧日历位置衔接未知不能直接保存；存在长空档，不能称为已经完成实际活动预约或全部自由对话验收。
+- No branches matching the user's wording were added; the model still chooses its own investigation and next step. Each tool observation carries its full preconditions and the current selection, and all missing items are listed at once before planning; adjusting estimated durations or amounts keeps place search results and invalidates the old schedule.
+- The run loop reserves room for a final reply and a review. On quota, network or review failure, the program uses the latest unexpired result to explain the specific conflict and next step; after conditions change, old conflicts are no longer presented as current facts.
+- Added a semantic `availability` classification for activities (visiting a place / needs a specific session); the model classifies, and whether a session is verified is decided by local user verification records with a date and place. Feasible routes with unverified sessions are marked as drafts; the front end and the preview endpoint block saving, and the verification form stays available. Ordinary place visits keep the meaning of a provisional personal time block.
+- The first real model recheck still failed: the model copied Google's long place IDs wrongly and could not bind them after several queries. The failure is kept in `artifacts/agent-food-recovery-live-first-failure.json`. Short place handles were then introduced into model observations, with the host resolving the real IDs; queried places and handles are supplied as work progresses, and unknown handles are still rejected.
+- Automated: 95/95 pass, see `artifacts/agent-recovery-tests.txt`; new tests cover the single complete pre-check, keeping candidates when estimates change, short-handle mapping, session evidence states, quota wrap-up, keeping real calendar conflicts after a network failure that follows zero plans, and invalidating old results. Isolated HTTP tests also verify that a draft preview returns 400 and that, after applying the user's session evidence and rescheduling, the preview returns 200; the write count is always 0. All 4 skills pass the format check.
+- The latest multi-turn history replay ended normally and asked for the date when it was missing, see `artifacts/agent-food-recovery-live.json`; this verified only the clarification, not a complete successful plan. The complete-request web recheck is attached separately.
+- Real service calls this round were limited to search, model inference and calendar reads; no write was confirmed, nothing was booked and no tickets were bought. Real workshop sessions still cannot be verified automatically against official pages; semantic classification and the model's completion check are not guarantees of reliability, and free-form conversation cannot be claimed fully accepted.
 
-第12轮（`artifacts/agent-chain-live-twelfth-incomplete-revision.json`）正常追问后执行过4次实际排程，均未找到可行候选；之后修改了条件而没有完成最后一次重排，旧结果失效后回退丢失了已查明信息。现新增`lastAttempt`：只作为同日历史尝试呈现，明确后续调整未核对，不作为当前journey、不绘制可执行新路线、不允许写入。完整回放验收区分当前方案与明确标记的部分结果，不能把后者计作已找到可行方案。
 
-第13轮（`artifacts/agent-chain-live-thirteenth-clarification-veto.json`）再次证明语义复核不能成为正常追问的否决门槛：它把没有时段要求的购物活动也当成缺少窗口，导致追问循环。最终实现撤掉了追问阶段的语义核对；原始规划请求与已提取字段一并跨轮保留，语义检查只在排程前进行。回归测试明确禁止追问调用语义核对服务。`artifacts/intake-settings-live.json`另记录小范围参数诊断，仅保存元数据和检查结论，未保存模型内部推理；两种调用方式都返回有效检查，未据此更换模型或宣称设置是根因。
+Final web recheck (real model, Maps and a Google Calendar read): the complete food request returned normally after 18 processing records, with every starting point and activity place bound; a market name alias mismatch was refused once and the model corrected it and carried on. Only one actual scheduling call was made, with 0 candidates, because of existing calendar commitments and normal opening hours. The reply actually explained these reasons, pointed out that the workshop session was unverified and suggested adjustments, rather than stopping at a generic execution-limit message. See `artifacts/agent-recovery-browser.txt` and `artifacts/agent-recovery-browser.png`. This verifies that a failed result can be delivered, not that the workshop takes place or that a feasible trip was found.
 
-第14轮（`artifacts/agent-chain-live-fourteenth-overconstrained.json`）已正常返回5项活动的核对结果，但暴露出另一语义问题：模型为没有时间要求的购物/散步附加了固定窗口，导致不必要的不可行结论。现对硬窗口来源增加钟点/时段表达的格式检查，仅引用活动名称不算时间依据；公开场次独立处理。不把这个有限语言格式检查用作意图路由，也不声称它覆盖所有自然语言；无法解析的相对时段须保留原需求并澄清。真实脚本新增断言：本例除午餐和固定演出外，其余3项不得附加硬时间窗口。
+Semantic flaws were still observed: the model described its own choice of 10:00–18:00 as the user's plan, and recorded an explicitly unlimited budget as flexible (neither has a hard cap here). The completion check did not catch these. This was not recorded as every requirement being semantically correct, and the reply in the screenshot was not polished or rewritten by hand; the source of state and the reliability of semantic extraction need further work.
 
-第15轮（`artifacts/agent-chain-live-fifteenth-review-mismatch.json`）发现检查器反过来要求没有时间偏好的活动补时间窗口，与上述格式规则冲突。现在写入端和语义核对端共用 `time-anchors.mjs`；不含时间表达的引用不能形成“缺失活动时段”问题，回归覆盖此误报。保留这些不利记录是为了区分程序防护已验证与模型自由表达仍然可能失败。
+## 2026-10-07: Cross-turn fix from event discovery to planning five activities
 
-最终当前版本真实三轮验收通过（脚本退出0，`artifacts/agent-chain-live.json`）：发现活动 → 保存5项活动并正常询问起点 → 补充Gamla Stan地铁站、预算不限、11:30–23:00后实际准备地点并排程。午餐12:00–13:30作为原话“中午”的暂定解释保留并披露；Engla Li按来源21:00–22:00锁定；其余3项未附加人为硬窗口。最新结果为0套可行候选，实际工具原因是营业窗口和已有日历占用，回复明确说明有限候选未找到，不把它说成所有方案均不可行，也未捏造其他演唱会冲突。此结果验证完整失败交付链路，不能算已找到满足全部要求的行程。原日历未变更，服务保留运行。
+- A normal follow-up question first saves the known needs, and an unfinished plan is kept across turns; with no current schedule result, generated text cannot pose as a delivered plan. The task can be paused at the user's wish, keeping the original needs.
+- Visit Stockholm detail parsing makes dates and start and end times explicit; a date range is no longer read as "all day / on tonight". Event evidence is passed across turns by a short-lived server reference, and the chosen event is linked to its source, venue and fixed session; tickets, prices and bookings are still not verified by this.
+- The starting point needs the user's own words as evidence; the event search centre is used only as the reference for distances. Event queries no longer pull in news automatically.
+- Up to 6 activities are supported; 5–6 use a limited candidate search with time-window pruning, and the route quota is still 36. Batch preparation of place candidates keeps per-item checking and replacement; the budget and each item's time window can be updated independently.
+- Recommendations from the event source and the factual conclusions of a new schedule are presented through tool fields. The model still chooses tools, candidates and adjustments; the completion review cannot create sessions, calendar conflicts or external results.
+- The needs check looks only for activities and time windows the user stated in the current planning task but that were not saved, excluding questions from earlier event discovery, assistant replies and source recommendations. Preconditions such as starting point, date and budget are checked by the program, so "missing starting point" cannot veto a normal follow-up question. The checker returns typed omissions with quotes from the original text; the program rejects quotes not from the user, "missing" fields that already exist, and out-of-scope demands about order, feasibility or price. The numeric reading of broad time expressions is disclosed by the program, even if the model leaves the assumption out.
 
-边界：仍是单日、有限候选和有限来源；模型对地点/服务相关性及语义解释仍可能出错。Maps营业时间不证明当天提供海鲜自助餐或有库存。短期来源缓存15分钟，重启后需要重查。公开场次只接受有明确同日开始/结束时刻的记录，跨午夜或日期范围活动仍待核实。本轮不预约、不购票、不创建或修改真实日历。
+Automated 114/114 pass (`artifacts/agent-chain-tests.txt`), and the 4 skills pass the format check. Coverage: five activities plus a fixed performance, a midday window, sources across turns, not inferring "all day" from a date, blocking invented timetables, presenting zero-plan facts, the batch candidate quota, the limited needs check, disclosing the interpretation of broad times, and an unfinished revision keeping the last check's result without posing as the current plan. Isolated HTTP acceptance continues to check the calendar preview boundary and a write count of 0.
+
+A separate browser tab verified "what events are in the city today → choose Engla Li and state five needs → a normal follow-up asking for the starting point"; the conversation in the original tab was not rewritten. Screenshot and visible text: `artifacts/agent-chain-browser.png`, `artifacts/agent-chain-browser.txt`. This screenshot does not prove a complete feasible route or a calendar write.
+
+The real rechecks did not pass at once: failures and partial results are kept in order, from `artifacts/agent-chain-live-first-failure.json` to the correspondingly numbered `artifacts/agent-chain-live-tenth-partial.json`. They exposed guessed dates, invented starting points, replying without acting, unsaved activities, the reviewer inventing conflicts, low-level operation loops, a missed lunch window and undisclosed assumptions; these records were not overwritten or dressed up as successes. The latest complete replay is `artifacts/agent-chain-live.json`.
+
+The 11th complete replay passed the new assertions and generated 3 real candidates (`artifacts/agent-chain-live-eleventh-pass-with-delays.json`): 5 activities, a Gamla Stan metro station start, 11:30–23:00, unlimited budget, the lunch window with the user's words, and Engla Li from its source at 21:00–22:00 were all kept, and other recommended performances were not treated as calendar conflicts. But during follow-up questions the reviewer still treated the earlier event discovery question as a missing starting point or budget and blocked repeatedly; the check's scope was then narrowed and requests isolated per planning task. This round's candidates cannot be saved directly because the location connections to earlier calendar entries are unknown, and they contain long gaps; actual event booking or acceptance of all free-form conversation cannot be claimed.
+
+The 12th round (`artifacts/agent-chain-live-twelfth-incomplete-revision.json`) asked a normal follow-up question, then ran 4 actual scheduling attempts with no feasible candidate; it then changed conditions without completing the last reschedule, and when the old result was invalidated the fallback lost what had been established. A new `lastAttempt` is shown only as an earlier attempt on the same day, says clearly that later adjustments were not checked, is not the current journey, draws no new executable route and allows no write. The complete replay acceptance distinguishes the current plan from clearly marked partial results, and the latter cannot count as a feasible plan found.
+
+The 13th round (`artifacts/agent-chain-live-thirteenth-clarification-veto.json`) showed again that the semantic review must not veto a normal follow-up question: it treated a shopping activity with no time requirement as missing a window, causing a follow-up loop. The final implementation removed semantic checking from the follow-up stage; the original planning request and the extracted fields are kept across turns, and semantic checking runs only before scheduling. A regression test forbids the follow-up stage from calling the semantic check. `artifacts/intake-settings-live.json` also records a small diagnosis of parameters, keeping only metadata and the check's conclusions, not the model's internal reasoning; both calling methods returned a valid check, and the model was not changed nor the setting claimed as the root cause.
+
+The 14th round (`artifacts/agent-chain-live-fourteenth-overconstrained.json`) returned the check results for 5 activities normally but exposed another semantic problem: the model attached fixed windows to shopping and a walk that had no time requirement, leading to unnecessary infeasible conclusions. A format check for clock-time or time-of-day expressions was added for the source of hard windows; quoting only the activity name does not count as time evidence; public sessions are handled separately. This limited language format check is not used for intent routing and is not claimed to cover all natural language; relative times that cannot be parsed must keep the original need and ask. The live script gained an assertion: apart from lunch and the fixed performance, the other 3 activities must not get hard time windows.
+
+The 15th round (`artifacts/agent-chain-live-fifteenth-review-mismatch.json`) found the checker conversely demanding time windows for activities with no time preference, contradicting the format rule above. The writing side and the semantic check now share `time-anchors.mjs`; a quote without a time expression cannot form a "missing activity time window" issue, and a regression covers this false positive. These unfavourable records are kept to separate what program safeguards have verified from what the model's free expression may still get wrong.
+
+The final real three-turn acceptance of the current version passed (script exit 0, `artifacts/agent-chain-live.json`): discover events → save 5 activities and ask for the starting point normally → after adding the Gamla Stan metro station, an unlimited budget and 11:30–23:00, actually prepare places and schedule. Lunch at 12:00–13:30 was kept and disclosed as the provisional reading of the user's word "midday"; Engla Li was locked from its source at 21:00–22:00; the other 3 activities had no artificial hard windows. The latest result was 0 feasible candidates; the actual tool reasons were opening hours and existing calendar commitments, and the reply said clearly that the limited candidates found nothing, without claiming every plan is infeasible or inventing other concert conflicts. This verifies the complete failure-delivery chain and cannot count as finding a trip that meets every requirement. The original calendar was not changed, and the service was left running.
+
+Limits: still a single day, limited candidates and limited sources; the model can still be wrong about place and service relevance and about semantic interpretation. Maps opening hours do not prove that a seafood buffet is served that day or that there is stock. The short-lived source cache lasts 15 minutes and needs requerying after a restart. Public sessions are accepted only with an explicit same-day start and end; events crossing midnight or spanning date ranges still need verification. No booking, no ticket purchase, and no real calendar event created or changed this round.
 ## 2026-10-07: City Walk meeting-point conversation repair
 
 Observed user dialogue: event discovery → City Walk + seafood buffet + souvenirs + KTH + groceries → departure Fridhemsplan with no hard time limit → clarification that departure is Fridhemsplan metro. Both final replies unnecessarily asked the user whether “Starts by Östermalm Saluhall” meant “Östermalms Food Hall”. The trace confirmed strict string matching rejected the map result repeatedly. The source coordinates had been discarded and the source meeting instructions were treated as an exact venue name.
@@ -276,7 +276,7 @@ Live three-turn replay (`scripts/event-venue-live.mjs --live`, `artifacts/event-
 
 Unfavourable evidence remains: the first replay exhausted intake retries (`artifacts/event-venue-live-intake-failure.json`), motivating explicit field limits/errors and long-title support. In the next replay, clarification initially structured only one activity but preserved the complete raw request; continuation recovered all five. It also needed several corrections for KTH's name and undecided budget. Free-form intake is therefore not claimed universally reliable. A separate browser test asked an unnecessary timing follow-up despite delegated timing; its outcome is recorded separately. Source time verification still does not establish a walking tour's finish location or ticket availability.
 
-The separate browser test then exposed an actual wrong-origin result: batch discovery chose the first Maps search result for `Fridhemsplan地铁站`, which was `T-Centralen`. Live Maps inspection reproduced that ranking (Fridhemsplan was third). Batch preparation now chooses a name-compatible candidate instead, and manual origin selection enforces the same check; unmatched names require further lookup rather than substitution. Latest-code live candidate preparation (`artifacts/origin-venue-live.json`) confirms Fridhemsplan departure and all five groups, including the City Walk venue receipt. This focused check uses live Maps/source data, not an LLM rerun or a successful full itinerary. A name-substring check is conservative but is not universal semantic identity resolution.
+The separate browser test then exposed an actual wrong-origin result: batch discovery chose the first Maps search result for “Fridhemsplan metro station” written in Chinese, which was `T-Centralen`. Live Maps inspection reproduced that ranking (Fridhemsplan was third). Batch preparation now chooses a name-compatible candidate instead, and manual origin selection enforces the same check; unmatched names require further lookup rather than substitution. Latest-code live candidate preparation (`artifacts/origin-venue-live.json`) confirms Fridhemsplan departure and all five groups, including the City Walk venue receipt. This focused check uses live Maps/source data, not an LLM rerun or a successful full itinerary. A name-substring check is conservative but is not universal semantic identity resolution.
 
 Final browser acceptance on the latest code: fresh event discovery, then all five activities with Fridhemsplan departure, an explicit test window 13:00–23:00 and unlimited budget. The nine-step trace resolved the venue from the 17 m coordinate/name match and delivered a checked five-activity result with actual Fridhemsplan departure, without asking the user to approve the translated meeting point. Zero candidates were found within the route budget; reported blockers were calendar occupation and opening windows. The model first omitted the explicit budget but repaired it after tool feedback. Evidence: `artifacts/event-venue-browser.txt`, `artifacts/event-venue-browser.png`. This explicit-window browser test does not establish that delegated timing is always handled without extra clarification. Original user dialogue was not changed; only the temporary test tab was reset and then closed. No calendar events were created, changed or deleted.
 ## 2026-10-07: Activity introductions and distance relevance
@@ -287,7 +287,7 @@ Distances are hidden in both chat and source cards by default. Opt-in display re
 
 122/122 regression tests passed (`artifacts/event-presentation-tests.txt`), covering description extraction, recommendation/source association, missing introductions, fabricated supporting excerpts, retained source times, hidden default distances and explicitly requested user-reference distances. The local-discovery skill validates. No calendar writes are part of this change.
 
-Live browser acceptance: “今天斯德哥尔摩有什么有趣的活动？” returned source-based Chinese introductions and conditional appeal for Engla Li and the historical City Walk, with no default distance text in either the response or cards. A comedy listing without an occurrence was explicitly prefixed as an unconfirmed alternative rather than a confirmed activity for that day. The three-step tool trace completed; the original user tabs/history were untouched. Evidence: `artifacts/event-introductions-browser.txt` and `artifacts/event-introductions-browser.png`. Model wording can still vary; the quote check is not a semantic fact checker.
+Live browser acceptance: “What interesting events are on in Stockholm today?”, asked in Chinese, returned source-based Chinese introductions and conditional appeal for Engla Li and the historical City Walk, with no default distance text in either the response or cards. A comedy listing without an occurrence was explicitly prefixed as an unconfirmed alternative rather than a confirmed activity for that day. The three-step tool trace completed; the original user tabs/history were untouched. Evidence: `artifacts/event-introductions-browser.txt` and `artifacts/event-introductions-browser.png`. Model wording can still vary; the quote check is not a semantic fact checker.
 
 
 ## 2026-10-07 — Constraint diagnostics, targeted repair and experience evidence

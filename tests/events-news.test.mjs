@@ -20,6 +20,6 @@ test('news validates source, timestamp, freshness and deduplicates headlines',()
 });
 test('translated titles cannot replace provider links or dates',async()=>{
   const cards=[{title:'Hej',url:'https://www.svt.se/example',publishedAt:'2026-10-07'}];
-  const translated=await translateTitles(cards,config,{fetchImpl:async()=>({ok:true,json:async()=>({choices:[{message:{tool_calls:[{function:{name:'translate_titles',arguments:'{"titles":["你好"]}'}}]}}]})})});
-  assert.equal(translated[0].url,cards[0].url);assert.equal(translated[0].publishedAt,cards[0].publishedAt);assert.equal(translated[0].translatedTitle,'你好');
+  const translated=await translateTitles(cards,config,{fetchImpl:async()=>({ok:true,json:async()=>({choices:[{message:{tool_calls:[{function:{name:'translate_titles',arguments:'{"titles":["Hello"]}'}}]}}]})})});
+  assert.equal(translated[0].url,cards[0].url);assert.equal(translated[0].publishedAt,cards[0].publishedAt);assert.equal(translated[0].translatedTitle,'Hello');
 });

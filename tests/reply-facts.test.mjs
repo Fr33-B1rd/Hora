@@ -4,7 +4,7 @@ import {discoverJourney,proposeJourneys,matchesRequiredName} from '../lib/journe
 import {writeReply,journeyReplyFacts} from '../lib/reply.mjs';
 import {instant} from '../lib/time.mjs';
 const config={key:'test',base:'https://test.invalid',model:'test'};
-const date='2026-10-10',activity={id:'kfc',label:'吃肯德基',query:'KFC',requiredNames:['KFC','Kentucky Fried Chicken'],duration:45,allowance:200};
+const date='2026-10-10',activity={id:'kfc',label:'Eat at KFC',query:'KFC',requiredNames:['KFC','Kentucky Fried Chicken'],duration:45,allowance:200};
 const place=(id,name)=>({id,name,location:{latitude:59.33,longitude:18.06},rating:4,periods:null});
 const origin=place('origin','T-Centralen'),kfc=place('kfc','KFC Kungsgatan');
 const input={date,originQuery:'T-Central',start:'08:00',deadline:'24:00',budgetMode:'flexible',activities:[activity]};
@@ -31,7 +31,7 @@ test('calendar gaps and uncertain location continuity are visible in grounded re
   const f=journeyReplyFacts(r);assert.equal(f.selected.continuityUnverified,true);assert.ok(f.requiredCaveats.some(s=>s.includes('cannot be saved')));assert.equal(f.calendarWritten,false);
 });
 test('narration failure falls back without changing facts or blocking valid plans',async()=>{
-  assert.equal(await writeReply({task:'test'},config,{fetchImpl:async()=>{throw Error('offline');},fallback:'已查到候选，详情见下方。'}),'已查到候选，详情见下方。');
+  assert.equal(await writeReply({task:'test'},config,{fetchImpl:async()=>{throw Error('offline');},fallback:'Found candidates; details below.'}),'Found candidates; details below.');
 });
 test('reply facts distinguish user limits, total reserve, transport and suggested visit times',async()=>{
  const r=await proposeJourneys({...input,budgetMode:'unlimited',timeMode:'flexible'},{origin,origins:[origin],pools:{kfc:[kfc]}},{route,day});
@@ -40,6 +40,6 @@ test('reply facts distinguish user limits, total reserve, transport and suggeste
  assert.equal(f.selected.stops[0].time.basis,'proposed_visit');assert.equal(f.calendarWritten,false);
 });
 test('narration rejects a time that does not exist in its grounded result',async()=>{
-  const fetchImpl=async()=>({ok:true,json:async()=>({choices:[{message:{tool_calls:[{function:{name:'write_reply',arguments:JSON.stringify({message:'10:49 到大学参观。'})}}]}}]})});
-  assert.equal(await writeReply({selected:{returnAt:'18:50'}},config,{fetchImpl,fallback:'候选详情见下方。'}),'候选详情见下方。');
+  const fetchImpl=async()=>({ok:true,json:async()=>({choices:[{message:{tool_calls:[{function:{name:'write_reply',arguments:JSON.stringify({message:'Arrive at the university at 10:49 for the visit.'})}}]}}]})});
+  assert.equal(await writeReply({selected:{returnAt:'18:50'}},config,{fetchImpl,fallback:'Candidate details below.'}),'Candidate details below.');
 });

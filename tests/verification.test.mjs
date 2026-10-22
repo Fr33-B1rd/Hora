@@ -8,7 +8,7 @@ const place=(id,n)=>({id,location:{latitude:59.33+n*.001,longitude:18.06},rating
 const origin=place('o',0),discovery={origin,origins:[origin],pools:{hair:[place('h',1),place('h2',2)],ramen:[place('r',2)],movie:[place('m',3)]}};
 const day={date,own:[],busy:[]},route=async()=>({minutes:10,walking:10,lines:[],fare:{currencyCode:'SEK',units:'0'}});
 const plan={stops:[{kind:'hair',placeId:'h'},{kind:'ramen',placeId:'r'},{kind:'movie',placeId:'m'}]};
-const rows=()=>plan.stops.map(s=>({...s,price:s.kind==='hair'?400:s.kind==='ramen'?200:250,priceSource:'测试价目表',timeStatus:s.kind==='movie'?'checked':'unverified',start:'17:00',duration:120,title:'测试场次',timeSource:'测试影院时刻表'}));
+const rows=()=>plan.stops.map(s=>({...s,price:s.kind==='hair'?400:s.kind==='ramen'?200:250,priceSource:'test price list',timeStatus:s.kind==='movie'?'checked':'unverified',start:'17:00',duration:120,title:'test screening',timeSource:'test cinema schedule'}));
 
 test('verification requires acknowledgment, sources and matching venue; zero price is distinct from unknown',()=>{
   assert.throws(()=>validateChecks(rows(),plan,date,false),/confirm/i);
