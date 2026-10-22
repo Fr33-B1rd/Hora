@@ -25,6 +25,10 @@ else
   set_value TELEGRAM_GROUP_ALLOWED_CHATS "$chat"                    # every member of this group may address it
   set_value TELEGRAM_REQUIRE_MENTION true                           # …and it answers only when mentioned or replied to
   set_value TELEGRAM_OBSERVE_UNMENTIONED_GROUP_MESSAGES true        # the rest is kept as context, not answered
+  # Without the last two the bot still answers when mentioned, but sees nothing else to summarise.
+  for line in "TELEGRAM_GROUP_ALLOWED_CHATS=$chat" TELEGRAM_REQUIRE_MENTION=true TELEGRAM_OBSERVE_UNMENTIONED_GROUP_MESSAGES=true; do
+    grep -qx "$line" "$HOME/.hermes/.env" || { echo "Not saved: $line. Add it to ~/.hermes/.env by hand, then run this again." >&2; exit 1; }
+  done
   cat <<EOF
 
 Group $chat is on.
