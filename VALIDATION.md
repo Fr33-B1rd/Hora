@@ -833,3 +833,5 @@ Fixed:
 - The group rules in `SOUL.daylight.md` now send summaries to the tool and allow that one calendar step; `about_hora` lists group chats as an ability.
 
 Tests: 143 Node, all passing; the new ones build a small `state.db` with the user's test conversation, a duplicated row, a session rollover, an earlier morning stretch and a private chat. The record lookup was also run against the real local `state.db` with Hermes's Node 26. Not yet checked in Telegram.
+
+Follow-up, 2026-10-22: on the VM the tool then answered that it had seen nothing. `deploy/check-group.sh` (new) showed why: `TELEGRAM_OBSERVE_UNMENTIONED_GROUP_MESSAGES=true` was missing from the VM's `~/.hermes/.env`, so no unaddressed group message had ever been stored (0 observed rows, 0 in the log), and each member had a separate conversation with the bot. Re-running `deploy/group-on.sh <group chat ID>` set it; `group-on.sh` now stops if any of its three settings did not land in `.env`. Checked by the user in the Telegram group: the summary, the offer of tasks and the meeting, the to-do additions and the calendar confirmation by the owner all passed.
