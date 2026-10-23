@@ -53,6 +53,8 @@ On Windows, `start-demo.bat` and `stop-demo.bat` run the web server in the backg
 
 `deploy/` sets Hora up on an Ubuntu VM behind HTTPS: `setup-vm.sh` first, then `telegram-on.sh` for the bot, `group-on.sh <group chat ID>` to let it join one Telegram group, and `voice-on.sh` for speech recognition on the server. `check-group.sh` explains why a group's messages are not being seen.
 
+`demo-on.sh <host>` adds a separate demo for visitors at `https://demo.<host>` (user name `judge`): a second assistant with a fictional user, Maria Lind, a stand-in calendar and no Telegram, which never sees the owner's data and is reset every night (`demo-reset.sh`).
+
 ## Tests
 
 ```bash

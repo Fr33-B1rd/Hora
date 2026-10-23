@@ -14,7 +14,12 @@ globalThis.fetch=async(url,opts={})=>{
   const u=new URL(url);
   if(u.hostname==='www.googleapis.com'&&u.pathname.startsWith('/calendar/v3/')){
     const body=opts.body?JSON.parse(opts.body):null,state=JSON.parse(readFileSync(file,'utf8')),method=opts.method||'GET',id=u.pathname.split('/').at(-1);
-    if(method==='GET')return ok(u.searchParams.has('timeMin')?{items:Object.values(state.events)}:state.events[id]);
+    if(method==='GET'&&u.searchParams.has('timeMin')){  // a day's listing: only events overlapping it, as Google returns
+      const from=Date.parse(u.searchParams.get('timeMin')),to=Date.parse(u.searchParams.get('timeMax')||'9999-12-31T00:00:00Z');
+      const at=t=>Date.parse(t?.dateTime||t?.date);
+      return ok({items:Object.values(state.events).filter(e=>at(e.start)<to&&at(e.end)>from)});
+    }
+    if(method==='GET')return ok(state.events[id]);
     if(method==='POST'&&state.events[body.id])return {ok:false,status:409};
     if(method==='PUT'&&opts.headers['If-Match']!==state.events[id]?.etag)return {ok:false,status:412};
     state.writes++;state.events[body.id]={...body,etag:String(state.writes),htmlLink:'https://calendar.google.com/calendar/event?eid='+body.id};writeFileSync(file,JSON.stringify(state));return ok(state.events[body.id]);

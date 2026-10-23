@@ -129,8 +129,8 @@ sudo systemctl restart daylight-agent daylight-web
 say "6/7 HTTPS proxy with a password"
 hash_file="$HOME/.daylight-proxy-hash"
 if [ ! -s "$hash_file" ]; then
-  echo "Choose the password visitors must enter to open the page (user name: daylight)."
-  echo "You will give this to the hackathon judges, so do not reuse one of your own."
+  echo "Choose the password for your own page (user name: daylight). Judges get a separate"
+  echo "demo site with its own password: see deploy/demo-on.sh."
   while :; do
     read -r -s -p "Password: " first; echo; read -r -s -p "Again:    " second; echo
     [ -n "$first" ] && [ "$first" = "$second" ] && [ "${#first}" -ge 10 ] && break
@@ -138,17 +138,7 @@ if [ ! -s "$hash_file" ]; then
   done
   caddy hash-password --plaintext "$first" > "$hash_file"; chmod 600 "$hash_file"; unset first second
 fi
-sudo tee /etc/caddy/Caddyfile >/dev/null <<EOF
-$host {
-	encode gzip
-	basicauth {
-		daylight $(cat "$hash_file")
-	}
-	reverse_proxy 127.0.0.1:4318 {
-		flush_interval -1
-	}
-}
-EOF
+bash "$project/deploy/caddyfile.sh" "$host" | sudo tee /etc/caddy/Caddyfile >/dev/null   # keeps the judges' demo site if there is one
 sudo systemctl enable -q caddy
 sudo systemctl reload caddy 2>/dev/null || sudo systemctl restart caddy
 

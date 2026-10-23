@@ -835,3 +835,17 @@ Fixed:
 Tests: 143 Node, all passing; the new ones build a small `state.db` with the user's test conversation, a duplicated row, a session rollover, an earlier morning stretch and a private chat. The record lookup was also run against the real local `state.db` with Hermes's Node 26. Not yet checked in Telegram.
 
 Follow-up, 2026-10-22: on the VM the tool then answered that it had seen nothing. `deploy/check-group.sh` (new) showed why: `TELEGRAM_OBSERVE_UNMENTIONED_GROUP_MESSAGES=true` was missing from the VM's `~/.hermes/.env`, so no unaddressed group message had ever been stored (0 observed rows, 0 in the log), and each member had a separate conversation with the bot. Re-running `deploy/group-on.sh <group chat ID>` set it; `group-on.sh` now stops if any of its three settings did not land in `.env`. Checked by the user in the Telegram group: the summary, the offer of tasks and the meeting, the to-do additions and the calendar confirmation by the owner all passed.
+
+
+## 2026-10-23 — A separate demo for judges
+
+The page's password used to open the owner's own instance: their memory, CV, real Google Calendar, and a chat that acts as them. Judges now get their own instance instead, at `https://demo.<host>` with the user name `judge` (`deploy/demo-on.sh`).
+
+- A second Hermes home (`~/.hermes-demo`), assistant on 127.0.0.1:8643 and page on 127.0.0.1:4319, with its own data directory. It shares the model and Maps keys and Hermes's bundled tools, nothing else. The copied `config.yaml` is stripped of its `platforms:` block, which named the owner's Telegram chat; its `.env` has no Telegram lines.
+- A fictional user, Maria Lind (`deploy/demo/seed.mjs`): her CV, job search, two research topics, food preferences, a to-do list and four calendar entries over the coming days, in a stand-in calendar (`tests/calendar-provider.mjs`), so confirming an event writes only there.
+- Reset every night at 04:00 Stockholm time (`deploy/demo-reset.sh`, a systemd timer): visitors' conversations are cleared, the profile and calendar written again, paused or removed jobs restored; job matches, offers and papers already found are kept.
+- `deploy/caddyfile.sh` now writes the proxy configuration for both sites, so re-running `setup-vm.sh` keeps the demo site.
+
+Found and fixed while testing: the stand-in calendar returned every event for any day, so “tomorrow” listed entries from later days. It now returns only events overlapping the requested range, as Google does. 143 Node tests pass.
+
+Local check in WSL with a throwaway home (removed afterwards): the home built without Telegram settings or the owner's ids; the gateway started with no Telegram attempt; “Who am I?” answered as Maria Lind from memory; “What is on my calendar tomorrow?” listed exactly the two entries for tomorrow; “Add a coffee with Anna tomorrow at 15:00 for an hour”, then “Yes”, proposed and then wrote one event to the stand-in calendar; “What can you do?” listed the abilities with the demo page's address; the page's profile showed Maria's data and none of the owner's. The reset ran and switched all three jobs back on. Not yet run on the VM; systemd units, the timer and the HTTPS site are untested until then.
