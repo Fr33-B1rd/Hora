@@ -4,13 +4,31 @@
 
 A personal assistant that keeps working while you are away, and never acts on your behalf until you say yes.
 
-**Video (3 min):** https://youtu.be/JTYbxrvG53Y
+**[Watch the demo · 2:34](https://youtu.be/JTYbxrvG53Y)**
 
 **Live demo:** https://demo.34-51-186-249.sslip.io (user `judge`; the password is in the submission). You meet Maria Lind, a fictional data scientist.
 
+> **Quick start** — Try one of the preset questions on the page, or ask Hora: **“What can you do?”** She will help you find a place to start.
+
 Built on [Hermes Agent](https://github.com/NousResearch/hermes-agent), thinking with NVIDIA Nemotron on Nebius Token Factory. Reach her in Telegram, in a group chat, or on her own web page.
 
+<br clear="right">
+
 ## What she does
+
+### 🗺️ Day planning
+
+Turn a museum visit, lunch and a movie into a few plans you can compare. Hora checks places, travel times and your calendar, and helps you choose a plan around your preferences, available time and budget.
+
+### 🔎 Job watch
+
+Keep looking without keeping a tab open. Hora checks new postings against your CV and preferences, then brings you suitable opportunities with what fits, what is missing and a link to apply.
+
+### 💬 Group chat summaries
+
+Catch up on what your group discussed: decisions, open questions and who will do what. Hora can then offer to add tasks to the shared to-do list or propose a meeting for your calendar.
+
+## Features
 
 **Always on.** Every few hours she checks new job postings against your CV and messages you only when one fits, with what fits and what is missing. Each morning she sends the new arXiv papers on your topics and the week's grocery offers. When nothing is new she stays silent, and no model is called.
 
@@ -25,17 +43,7 @@ Built on [Hermes Agent](https://github.com/NousResearch/hermes-agent), thinking 
 
 ## How it is built
 
-```
-Telegram, group chat, web page
-            │
-      Hermes Agent ─────────── Nemotron Super      talks, chooses tools, checks job fit
-   persona, memory, scheduler
-            │
-   Hora's tools (MCP) ──────── Nemotron Nano       screens papers, extracts job requirements
-   jobs · research · groceries · calendar · to-do · day planner · group summary
-            │
-   Google Calendar · Maps · arXiv · job boards · Lidl · Visit Stockholm · SVT
-```
+![Hora architecture from the demo: users connect to Hermes Agent; Nemotron Super and Nano run on Nebius Token Factory; task scripts, tools, code guards and stored data run in the Google Cloud VM and connect to outside data.](design/hora-architecture.svg)
 
 What is ours: the tools in `mcp/`, the job scripts in `hermes/scripts/`, Hora's persona in `hermes/SOUL.daylight.md`, the web page in `public/`, and the guards in code. Hermes provides the agent loop, memory, chat connections and scheduler.
 

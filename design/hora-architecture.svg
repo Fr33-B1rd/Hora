@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="760" viewBox="0 80 1920 760" role="img" aria-labelledby="title desc">
+  <title id="title">Hora — system architecture</title>
+  <desc id="desc">Static version of the architecture in the final Hora demo. User connects to Hermes Agent and its task scripts and toolbox. Both connect to NVIDIA Nemotron on Nebius Token Factory. The Google Cloud VM contains the agent, tools, guards and memory, documents and preferences. Tools connect to outside data.</desc>
+  <!-- Layout, labels and palette from the final demo's architecture scene. -->
+  <style>
+    text { font-family: Consolas, 'Liberation Mono', monospace; text-anchor: middle; }
+    .box { fill: #222c37; stroke-width: 2; }
+    .label { font-size: 29px; font-weight: 600; }
+    .sub { font-family: 'Segoe UI', Arial, sans-serif; font-size: 24px; fill: #c4d1da; }
+    .blue { stroke: #8ccfe3; }
+    .purple { stroke: #b6a5e9; }
+    .green { stroke: #9fd3ad; }
+    .wire { fill: none; stroke: #5b6c77; stroke-width: 2; }
+  </style>
+  <rect x="0" y="80" width="1920" height="760" rx="20" fill="#181e28"/>
+  <rect x="365" y="340" width="1080" height="450" rx="16" fill="#1f2c31" stroke="#9fd3ad" stroke-width="2" stroke-dasharray="10 9"/>
+  <g class="wire">
+    <path d="M285 476H405"/>
+    <path d="M587 390V295"/>
+    <path d="M1197 390V295"/>
+    <path d="M770 476H990"/>
+    <path d="M1405 476H1580"/>
+    <path d="M587 660V564"/>
+    <path d="M1197 660V585"/>
+  </g>
+  <rect class="box purple" x="405" y="135" width="1000" height="160" rx="9"/>
+  <text class="label" x="905" y="174" fill="#b6a5e9">NVIDIA Nemotron</text>
+  <text class="sub" x="905" y="217">Super · Nano</text>
+  <text x="905" y="263" fill="#b6a5e9" font-size="23">Nebius Token Factory</text>
+  <rect class="box blue" x="65" y="420" width="220" height="112" rx="9"/>
+  <text class="label" x="175" y="459" fill="#8ccfe3">User</text>
+  <text class="sub" x="175" y="502">Web · Telegram</text>
+  <rect class="box blue" x="405" y="390" width="365" height="174" rx="9"/>
+  <text class="label" x="587.5" y="429" fill="#8ccfe3">Hermes Agent</text>
+  <text class="sub" x="587.5" y="472">Memory · Skills</text>
+  <text class="sub" x="587.5" y="507">Scheduler</text>
+  <rect class="box blue" x="990" y="390" width="415" height="105" rx="9"/>
+  <text class="label" x="1197.5" y="452.5" fill="#8ccfe3">Task scripts · Toolbox</text>
+  <rect class="box" x="990" y="525" width="415" height="60" rx="9" stroke="#f3b976"/>
+  <text x="1197.5" y="565" font-size="27" font-weight="600" fill="#f3b976">Guards in code</text>
+  <rect class="box purple" x="1580" y="420" width="275" height="150" rx="9"/>
+  <text class="label" x="1717.5" y="459" fill="#b6a5e9">Outside data</text>
+  <text class="sub" x="1717.5" y="502">Maps · Calendar</text>
+  <text class="sub" x="1717.5" y="537">News · Jobs</text>
+  <rect class="box green" x="405" y="660" width="1000" height="80" rx="9"/>
+  <text class="label" x="905" y="710" fill="#9fd3ad">Memory · Documents · Preferences</text>
+  <text x="390" y="775" text-anchor="start" style="text-anchor:start" font-family="'Segoe UI', Arial, sans-serif" font-size="25" fill="#9fd3ad">Google Cloud VM</text>
+</svg>
