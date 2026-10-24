@@ -20,9 +20,13 @@ Built on [Hermes Agent](https://github.com/NousResearch/hermes-agent), thinking 
 
 Turn a museum visit, lunch and a movie into a few plans you can compare. Hora checks places, travel times and your calendar, and helps you choose a plan around your preferences, available time and budget.
 
+![Day planning in the live web app: enter a shorter-walk preference, read Hora's recommendation, and select the matching plan and route.](design/readme/day-planning.gif)
+
 ### 🔎 Job watch
 
 Keep looking without keeping a tab open. Hora checks new postings against your CV and preferences, then brings you suitable opportunities with what fits, what is missing and a link to apply.
+
+![An actual scheduled job update in Telegram, showing suitable roles, matching experience, missing requirements and application links.](design/readme/job-watch.gif)
 
 ### 💬 Group chat summaries
 
