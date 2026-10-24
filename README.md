@@ -4,6 +4,8 @@
 
 A personal assistant that keeps working while you are away, and never acts on your behalf until you say yes.
 
+**Video (3 min):** https://youtu.be/JTYbxrvG53Y
+
 **Live demo:** https://demo.34-51-186-249.sslip.io (user `judge`; the password is in the submission). You meet Maria Lind, a fictional data scientist.
 
 Built on [Hermes Agent](https://github.com/NousResearch/hermes-agent), thinking with NVIDIA Nemotron on Nebius Token Factory. Reach her in Telegram, in a group chat, or on her own web page.
